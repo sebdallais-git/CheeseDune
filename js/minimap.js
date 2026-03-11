@@ -6,6 +6,7 @@ import {
 import { getMapWidth, getMapHeight, getTile } from './map.js';
 import { getCamX, getCamY, getZoom, centerOnTile } from './camera.js';
 import { getFogState } from './fog.js';
+import { getUnits } from './units.js';
 
 const MINIMAP_PADDING = 8;
 const MINIMAP_MAX_WIDTH = SIDEBAR_WIDTH - MINIMAP_PADDING * 2;
@@ -87,6 +88,24 @@ export function drawMinimap(ctx) {
     viewTileW * tileScale,
     viewTileH * tileScale
   );
+
+  // Draw unit dots
+  const allUnits = getUnits();
+  for (const unit of allUnits) {
+    const utx = Math.floor(unit.x / TILE_SIZE);
+    const uty = Math.floor(unit.y / TILE_SIZE);
+
+    // Only show enemy units if their tile is visible
+    if (unit.owner !== 'player' && getFogState(utx, uty) !== FogState.VISIBLE) continue;
+
+    ctx.fillStyle = unit.owner === 'player' ? '#00ff00' : '#ff0000';
+    const dotSize = Math.max(2, tileScale);
+    ctx.fillRect(
+      minimapX + utx * tileScale,
+      minimapY + uty * tileScale,
+      dotSize, dotSize
+    );
+  }
 
   // Label
   ctx.fillStyle = '#666';
