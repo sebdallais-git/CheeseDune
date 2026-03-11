@@ -18,9 +18,30 @@ export function initRenderer() {
 
   canvas.width = CANVAS_WIDTH * dpr;
   canvas.height = CANVAS_HEIGHT * dpr;
-  canvas.style.width = CANVAS_WIDTH + 'px';
-  canvas.style.height = CANVAS_HEIGHT + 'px';
   ctx.scale(dpr, dpr);
+
+  // Scale canvas to fill viewport maintaining aspect ratio
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+
+function resizeCanvas() {
+  const windowW = window.innerWidth;
+  const windowH = window.innerHeight;
+  const aspect = CANVAS_WIDTH / CANVAS_HEIGHT;
+  const windowAspect = windowW / windowH;
+
+  let cssW, cssH;
+  if (windowAspect > aspect) {
+    cssH = windowH;
+    cssW = windowH * aspect;
+  } else {
+    cssW = windowW;
+    cssH = windowW / aspect;
+  }
+
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
 }
 
 export function getCanvas() { return canvas; }
