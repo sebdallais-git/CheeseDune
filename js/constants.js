@@ -75,3 +75,45 @@ export const FogState = {
 // Zoom constraints
 export const MIN_ZOOM = 1.0;
 export const MAX_ZOOM = 2.0;
+
+// Unit type IDs
+export const UnitType = {
+  HARVESTER: 'harvester',
+  LIGHT_INFANTRY: 'lightInfantry',
+  HEAVY_INFANTRY: 'heavyInfantry',
+  ROCKET_INFANTRY: 'rocketInfantry',
+  LIGHT_VEHICLE: 'lightVehicle',
+  MEDIUM_VEHICLE: 'mediumVehicle',
+  TANK: 'tank',
+  SIEGE_TANK: 'siegeTank',
+  ROCKET_LAUNCHER: 'rocketLauncher',
+  MCV: 'mcv',
+};
+
+// Unit stats by type
+export const UnitStats = {
+  [UnitType.HARVESTER]:        { hp: 600, speed: 2, range: 0, damage: 0,  cost: 300, buildTime: 20, category: 'vehicle', visionRadius: 5 },
+  [UnitType.LIGHT_INFANTRY]:   { hp: 50,  speed: 4, range: 3, damage: 8,  cost: 40,  buildTime: 8,  category: 'infantry', visionRadius: 4 },
+  [UnitType.HEAVY_INFANTRY]:   { hp: 100, speed: 3, range: 4, damage: 15, cost: 80,  buildTime: 12, category: 'infantry', visionRadius: 4 },
+  [UnitType.ROCKET_INFANTRY]:  { hp: 60,  speed: 3, range: 5, damage: 30, cost: 100, buildTime: 15, category: 'infantry', visionRadius: 4 },
+  [UnitType.LIGHT_VEHICLE]:    { hp: 150, speed: 6, range: 3, damage: 12, cost: 150, buildTime: 12, category: 'vehicle', visionRadius: 5 },
+  [UnitType.MEDIUM_VEHICLE]:   { hp: 200, speed: 6, range: 3, damage: 18, cost: 200, buildTime: 15, category: 'vehicle', visionRadius: 5, shotsPerAttack: 2 }, // x2 burst
+  [UnitType.TANK]:             { hp: 400, speed: 4, range: 4, damage: 35, cost: 400, buildTime: 20, category: 'vehicle', visionRadius: 5 },
+  [UnitType.SIEGE_TANK]:       { hp: 500, speed: 3, range: 6, damage: 50, cost: 500, buildTime: 25, category: 'vehicle', visionRadius: 5 },
+  [UnitType.ROCKET_LAUNCHER]:  { hp: 300, speed: 3, range: 7, damage: 40, cost: 600, buildTime: 25, category: 'vehicle', visionRadius: 5 },
+  [UnitType.MCV]:              { hp: 800, speed: 2, range: 0, damage: 0,  cost: 1000, buildTime: 30, category: 'vehicle', visionRadius: 5 },
+};
+
+// Super unit stats — deferred to Phase 5 (Palace required). Defined here for completeness.
+// Special abilities are handled in combat.js (Phase 3/5).
+export const SuperUnitType = {
+  CHEESE_CANNON: 'superUnit',  // Swiss — AoE + lingering damage
+  WINE_CATAPULT: 'superUnit',  // French — drunk wander effect
+  BRATWURST_BLITZ: 'superUnit', // German — fast heavy
+};
+
+// Unit rendering sizes (radius in pixels at 1x zoom)
+export const UnitSize = {
+  infantry: 6,
+  vehicle: 10,
+};
