@@ -10,6 +10,8 @@ import { startEngine, onDraw, onTick } from './engine.js';
 import { initInput } from './input.js';
 import { initFog, resetVisibility, revealArea } from './fog.js';
 import { initMinimap } from './minimap.js';
+import { getUnits } from './units.js';
+import { TILE_SIZE } from './constants.js';
 
 function init() {
   const testMap = createTestMap();
@@ -22,14 +24,17 @@ function init() {
   initFog();
   initMinimap();
 
-  // Test reveals
-  revealArea(5, 35, 5);
-  revealArea(20, 20, 4);
-
   onTick('fog', () => {
     resetVisibility();
-    revealArea(5, 35, 5);
-    revealArea(20, 20, 4);
+    // Reveal around all player units
+    const allUnits = getUnits();
+    for (const unit of allUnits) {
+      if (unit.owner === 'player') {
+        const tileX = Math.floor(unit.x / TILE_SIZE);
+        const tileY = Math.floor(unit.y / TILE_SIZE);
+        revealArea(tileX, tileY, unit.visionRadius);
+      }
+    }
   });
 
   onDraw('clear', () => clearScreen());
