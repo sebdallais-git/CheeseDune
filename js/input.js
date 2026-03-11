@@ -67,6 +67,7 @@ function inViewport(x, y) {
 
 function onPointerDown(e) {
   e.preventDefault();
+  canvasEl.setPointerCapture(e.pointerId);
   const pos = canvasCoords(e);
   pointers.set(e.pointerId, {
     x: pos.x, y: pos.y,
