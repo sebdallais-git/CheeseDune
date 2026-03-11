@@ -2,8 +2,8 @@
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE } from './constants.js';
 import { moveCamera, getZoom, setZoom, screenToTile, getCamX, getCamY } from './camera.js';
 import { handleMinimapClick } from './minimap.js';
-import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect } from './selection.js';
-import { moveUnitTo } from './units.js';
+import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
+import { moveUnitTo, getUnitAtPosition } from './units.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -36,6 +36,12 @@ let boxStartWorldY = 0;
 let boxEndWorldX = 0;
 let boxEndWorldY = 0;
 let isBoxSelecting = false;
+
+let lastTapTime = 0;
+let lastTapWorldX = 0;
+let lastTapWorldY = 0;
+const DOUBLE_TAP_MS = 400;
+const DOUBLE_TAP_DIST = 30; // world pixels
 
 export function initInput(canvas) {
   canvasEl = canvas;
@@ -194,20 +200,39 @@ function onPointerUp(e) {
           const worldX = tile.tileX * TILE_SIZE + TILE_SIZE / 2;
           const worldY = tile.tileY * TILE_SIZE + TILE_SIZE / 2;
 
-          // Try to select a unit at tap position
-          const tapped = selectAtPosition(worldX, worldY);
+          const now = performance.now();
+          const timeSinceLastTap = now - lastTapTime;
+          const distFromLastTap = Math.sqrt(
+            (worldX - lastTapWorldX) ** 2 + (worldY - lastTapWorldY) ** 2
+          );
 
-          if (!tapped) {
-            // No unit tapped
-            if (hasSelection()) {
-              // Move selected units to tapped tile
-              const selected = getSelectedUnits();
-              for (const u of selected) {
-                moveUnitTo(u, tile.tileX, tile.tileY);
-              }
-            } else {
-              deselectAll();
+          // Check for double-tap
+          if (timeSinceLastTap < DOUBLE_TAP_MS && distFromLastTap < DOUBLE_TAP_DIST) {
+            const unit = getUnitAtPosition(worldX, worldY, 20);
+            if (unit && unit.owner === 'player') {
+              selectAllOfType(unit);
             }
+            // Reset tap tracking to prevent triple-tap triggering another double-tap
+            lastTapTime = 0;
+            lastTapWorldX = 0;
+            lastTapWorldY = 0;
+          } else {
+            // Single tap — existing logic
+            const tapped = selectAtPosition(worldX, worldY);
+            if (!tapped) {
+              if (hasSelection()) {
+                const selected = getSelectedUnits();
+                for (const u of selected) {
+                  moveUnitTo(u, tile.tileX, tile.tileY);
+                }
+              } else {
+                deselectAll();
+              }
+            }
+            // Track for potential double-tap
+            lastTapTime = now;
+            lastTapWorldX = worldX;
+            lastTapWorldY = worldY;
           }
         }
       }
