@@ -4,6 +4,7 @@ import { moveCamera, getZoom, setZoom, screenToTile, getCamX, getCamY } from './
 import { handleMinimapClick } from './minimap.js';
 import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
 import { moveUnitTo, getUnitAtPosition } from './units.js';
+import { orderAttack } from './combat.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -219,17 +220,27 @@ function onPointerUp(e) {
             lastTapWorldX = 0;
             lastTapWorldY = 0;
           } else {
-            // Single tap — existing logic
-            const tapped = selectAtPosition(worldX, worldY);
-            if (!tapped) {
-              if (hasSelection()) {
-                const selected = getSelectedUnits();
-                for (const u of selected) {
-                  moveUnitTo(u, tile.tileX, tile.tileY);
-                }
-              } else {
-                deselectAll();
+            // Single tap
+            // Check if tapping an enemy unit (attack command)
+            const tappedUnit = getUnitAtPosition(worldX, worldY, 20);
+
+            if (tappedUnit && tappedUnit.owner === 'player') {
+              // Tapped own unit — select it
+              selectAtPosition(worldX, worldY);
+            } else if (tappedUnit && tappedUnit.owner !== 'player' && hasSelection()) {
+              // Tapped enemy with selection — attack command
+              const selected = getSelectedUnits();
+              for (const u of selected) {
+                orderAttack(u, tappedUnit);
               }
+            } else if (!tappedUnit && hasSelection()) {
+              // Tapped empty ground with selection — move command
+              const selected = getSelectedUnits();
+              for (const u of selected) {
+                moveUnitTo(u, tile.tileX, tile.tileY);
+              }
+            } else {
+              deselectAll();
             }
             // Track for potential double-tap
             lastTapTime = now;
