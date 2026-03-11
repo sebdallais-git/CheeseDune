@@ -1,6 +1,7 @@
 // Game/public/dune/js/input.js
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 import { moveCamera, getZoom, setZoom } from './camera.js';
+import { handleMinimapClick } from './minimap.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -122,7 +123,10 @@ function onPointerUp(e) {
 
   if (pointers.size === 0) {
     if (state === GestureState.PENDING && ptr) {
-      // Tap handling — future tasks
+      // Check minimap first
+      if (!handleMinimapClick(ptr.startX, ptr.startY)) {
+        // Not on minimap — handle as map tap (unit selection etc. in later phases)
+      }
     }
     state = GestureState.IDLE;
   } else if (pointers.size === 1) {

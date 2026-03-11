@@ -1,10 +1,14 @@
 // Game/public/dune/js/main.js
 import { createTestMap, initMap } from './map.js';
 import { initCamera, centerOnTile } from './camera.js';
-import { initRenderer, clearScreen, drawTiles, drawFog, drawSidebar, drawTopBar, drawBottomBar, getCanvas } from './renderer.js';
+import {
+  initRenderer, clearScreen, drawTiles, drawFog, drawSidebar,
+  drawTopBar, drawBottomBar, drawMinimap, getCanvas
+} from './renderer.js';
 import { startEngine, onDraw, onTick } from './engine.js';
 import { initInput } from './input.js';
 import { initFog, resetVisibility, revealArea } from './fog.js';
+import { initMinimap } from './minimap.js';
 
 function init() {
   const testMap = createTestMap();
@@ -15,6 +19,7 @@ function init() {
   centerOnTile(20, 20);
   initInput(getCanvas());
   initFog();
+  initMinimap();
 
   // Test reveals
   revealArea(5, 35, 5);
@@ -32,6 +37,7 @@ function init() {
   onDraw('topBar', () => drawTopBar());
   onDraw('bottomBar', () => drawBottomBar());
   onDraw('sidebar', () => drawSidebar());
+  onDraw('minimap', () => drawMinimap());
 
   startEngine();
 }

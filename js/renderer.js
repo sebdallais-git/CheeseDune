@@ -6,6 +6,7 @@ import {
 import { getFogState } from './fog.js';
 import { getCamX, getCamY, getZoom, getVisibleTileRange } from './camera.js';
 import { getTile, getMapWidth, getMapHeight } from './map.js';
+import { drawMinimap as drawMinimapImpl } from './minimap.js';
 
 let canvas, ctx, dpr;
 
@@ -107,6 +108,10 @@ export function drawTopBar() {
 export function drawBottomBar() {
   ctx.fillStyle = '#0d0d1a';
   ctx.fillRect(0, CANVAS_HEIGHT - 60, VIEWPORT_WIDTH, 60);
+}
+
+export function drawMinimap() {
+  drawMinimapImpl(ctx);
 }
 
 export function drawFog() {
