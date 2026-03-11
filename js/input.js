@@ -1,7 +1,9 @@
 // Game/public/dune/js/input.js
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE } from './constants.js';
 import { moveCamera, getZoom, setZoom, screenToTile } from './camera.js';
 import { handleMinimapClick } from './minimap.js';
+import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits } from './selection.js';
+import { moveUnitTo } from './units.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -140,7 +142,28 @@ function onPointerUp(e) {
     if (state === GestureState.PENDING && ptr) {
       // Check minimap first
       if (!handleMinimapClick(ptr.startX, ptr.startY)) {
-        // Not on minimap — handle as map tap (unit selection etc. in later phases)
+        // Convert screen tap to world coordinates
+        const tile = screenToTile(ptr.startX, ptr.startY);
+        if (tile) {
+          const worldX = tile.tileX * TILE_SIZE + TILE_SIZE / 2;
+          const worldY = tile.tileY * TILE_SIZE + TILE_SIZE / 2;
+
+          // Try to select a unit at tap position
+          const tapped = selectAtPosition(worldX, worldY);
+
+          if (!tapped) {
+            // No unit tapped
+            if (hasSelection()) {
+              // Move selected units to tapped tile
+              const selected = getSelectedUnits();
+              for (const u of selected) {
+                moveUnitTo(u, tile.tileX, tile.tileY);
+              }
+            } else {
+              deselectAll();
+            }
+          }
+        }
       }
     }
     hoverTileX = -1;
