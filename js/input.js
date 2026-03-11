@@ -5,6 +5,9 @@ import { handleMinimapClick } from './minimap.js';
 import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
 import { moveUnitTo, getUnitAtPosition } from './units.js';
 import { orderAttack } from './combat.js';
+import { handleSidebarTap, getPlacementMode, clearPlacementMode } from './sidebar.js';
+import { placePendingBuilding } from './construction.js';
+import { canPlaceBuilding } from './buildings.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -193,10 +196,17 @@ function onPointerUp(e) {
       selectInRect(boxStartWorldX, boxStartWorldY, boxEndWorldX, boxEndWorldY);
       isBoxSelecting = false;
     } else if (state === GestureState.PENDING && ptr) {
-      // Check minimap first
-      if (!handleMinimapClick(ptr.startX, ptr.startY)) {
+      // Compute tile for tap position (used by placement and tap logic below)
+      const tile = screenToTile(ptr.startX, ptr.startY);
+      // Check sidebar first
+      if (handleSidebarTap(ptr.startX, ptr.startY)) {
+        // Sidebar handled the tap
+      } else if (getPlacementMode() && tile) {
+        // In building placement mode — try to place
+        placePendingBuilding('player', tile.tileX, tile.tileY);
+        clearPlacementMode();
+      } else if (!handleMinimapClick(ptr.startX, ptr.startY)) {
         // Convert screen tap to exact world coordinates (not snapped to tile center)
-        const tile = screenToTile(ptr.startX, ptr.startY);
         if (tile) {
           const vx = ptr.startX;
           const vy = ptr.startY - TOP_BAR_HEIGHT;
