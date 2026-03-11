@@ -1,8 +1,9 @@
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, TERRAIN_COLORS,
   TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, SIDEBAR_WIDTH,
-  Terrain
+  Terrain, FogState
 } from './constants.js';
+import { getFogState } from './fog.js';
 import { getCamX, getCamY, getZoom, getVisibleTileRange } from './camera.js';
 import { getTile, getMapWidth, getMapHeight } from './map.js';
 
@@ -106,4 +107,36 @@ export function drawTopBar() {
 export function drawBottomBar() {
   ctx.fillStyle = '#0d0d1a';
   ctx.fillRect(0, CANVAS_HEIGHT - 60, VIEWPORT_WIDTH, 60);
+}
+
+export function drawFog() {
+  const { startX, startY, endX, endY } = getVisibleTileRange();
+  const z = getZoom();
+  const cx = getCamX();
+  const cy = getCamY();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  ctx.clip();
+
+  for (let y = startY; y <= endY; y++) {
+    for (let x = startX; x <= endX; x++) {
+      const fog = getFogState(x, y);
+      if (fog === FogState.VISIBLE) continue;
+
+      const sx = (x * TILE_SIZE - cx) * z;
+      const sy = (y * TILE_SIZE - cy) * z + TOP_BAR_HEIGHT;
+      const size = TILE_SIZE * z;
+
+      if (fog === FogState.HIDDEN) {
+        ctx.fillStyle = '#000';
+      } else {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      }
+      ctx.fillRect(sx, sy, size + 0.5, size + 0.5);
+    }
+  }
+
+  ctx.restore();
 }
