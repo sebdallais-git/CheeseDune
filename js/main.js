@@ -5,16 +5,19 @@ import {
   initRenderer, clearScreen, drawTiles, drawGrid, drawFog,
   drawHoverTile, drawSidebar, drawMinimap,
   drawDebugInfo, updateFps, drawUnits, drawSelectionBox,
-  drawSelectionPanel, getCanvas
+  drawSelectionPanel, drawProjectiles, drawParticles, getCanvas
 } from './renderer.js';
 import { startEngine, onDraw, onTick } from './engine.js';
 import { initInput, getBoxSelectState } from './input.js';
 import { initFog, resetVisibility, revealArea } from './fog.js';
 import { initMinimap } from './minimap.js';
 import { spawnUnit, updateUnits, getUnits } from './units.js';
-import { getSelectedUnits } from './selection.js';
+import { getSelectedUnits, cleanSelection } from './selection.js';
 import { UnitType, TILE_SIZE } from './constants.js';
 import { FactionId } from './factions.js';
+import { updateCombat } from './combat.js';
+import { updateProjectiles } from './projectiles.js';
+import { updateParticles } from './particles.js';
 
 function init() {
   const testMap = createTestMap();
@@ -26,25 +29,37 @@ function init() {
   initFog();
   initMinimap();
 
-  // Spawn test units for Phase 2 development
+  // Spawn test units for Phase 3 combat testing
   // Player units (Swiss) near the concrete base area
   spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.SWISS, 4, 34, 'player');
   spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.SWISS, 5, 34, 'player');
   spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.SWISS, 6, 34, 'player');
   spawnUnit(UnitType.HEAVY_INFANTRY, FactionId.SWISS, 4, 35, 'player');
+  spawnUnit(UnitType.ROCKET_INFANTRY, FactionId.SWISS, 5, 35, 'player');
   spawnUnit(UnitType.TANK, FactionId.SWISS, 6, 36, 'player');
   spawnUnit(UnitType.LIGHT_VEHICLE, FactionId.SWISS, 7, 35, 'player');
+  spawnUnit(UnitType.SIEGE_TANK, FactionId.SWISS, 8, 36, 'player');
 
-  // Enemy units (French) across the river
-  spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.FRENCH, 22, 18, 'enemy');
-  spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.FRENCH, 23, 18, 'enemy');
+  // Enemy units (French) — closer for combat testing
+  spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.FRENCH, 12, 30, 'enemy');
+  spawnUnit(UnitType.LIGHT_INFANTRY, FactionId.FRENCH, 13, 30, 'enemy');
+  spawnUnit(UnitType.HEAVY_INFANTRY, FactionId.FRENCH, 14, 30, 'enemy');
+  spawnUnit(UnitType.TANK, FactionId.FRENCH, 13, 31, 'enemy');
+  spawnUnit(UnitType.LIGHT_VEHICLE, FactionId.FRENCH, 15, 31, 'enemy');
+
+  // More enemies across the river
+  spawnUnit(UnitType.ROCKET_LAUNCHER, FactionId.FRENCH, 22, 18, 'enemy');
   spawnUnit(UnitType.TANK, FactionId.FRENCH, 24, 20, 'enemy');
 
   // Center camera on player base
   centerOnTile(5, 35);
 
   // Game logic ticks (10/s)
+  onTick('combat', (dt) => updateCombat(dt));
+  onTick('projectiles', (dt) => updateProjectiles(dt));
+  onTick('particles', (dt) => updateParticles(dt));
   onTick('units', (dt) => updateUnits(dt));
+  onTick('selection', () => cleanSelection());
   onTick('fog', () => {
     resetVisibility();
     const allUnits = getUnits();
@@ -63,6 +78,8 @@ function init() {
   onDraw('grid', () => drawGrid());
   onDraw('fog', () => drawFog());
   onDraw('units', () => drawUnits());
+  onDraw('projectiles', () => drawProjectiles());
+  onDraw('particles', () => drawParticles());
   onDraw('hover', () => drawHoverTile());
   onDraw('boxSelect', () => {
     const box = getBoxSelectState();
