@@ -8,6 +8,7 @@ import { getCamX, getCamY, getZoom, getVisibleTileRange } from './camera.js';
 import { getTile, getMapWidth, getMapHeight } from './map.js';
 import { drawMinimap as drawMinimapImpl } from './minimap.js';
 import { getHoverTile } from './input.js';
+import { drawUnits as drawUnitsImpl, drawSelectionBox as drawSelectionBoxImpl } from './unit-renderer.js';
 
 let canvas, ctx, dpr;
 
@@ -232,6 +233,14 @@ export function drawGrid() {
   }
 
   ctx.restore();
+}
+
+export function drawUnits() {
+  drawUnitsImpl(ctx);
+}
+
+export function drawSelectionBox(x1, y1, x2, y2) {
+  drawSelectionBoxImpl(ctx, x1, y1, x2, y2);
 }
 
 export function drawHoverTile() {
