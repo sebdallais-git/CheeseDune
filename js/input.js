@@ -1,8 +1,8 @@
 // Game/public/dune/js/input.js
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE } from './constants.js';
-import { moveCamera, getZoom, setZoom, screenToTile } from './camera.js';
+import { moveCamera, getZoom, setZoom, screenToTile, getCamX, getCamY } from './camera.js';
 import { handleMinimapClick } from './minimap.js';
-import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits } from './selection.js';
+import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect } from './selection.js';
 import { moveUnitTo } from './units.js';
 
 const DRAG_THRESHOLD = 8;
@@ -12,6 +12,7 @@ const GestureState = {
   PENDING: 'PENDING',
   DRAGGING: 'DRAGGING',
   PINCHING: 'PINCHING',
+  BOX_SELECTING: 'BOX_SELECTING',
 };
 
 let state = GestureState.IDLE;
@@ -25,6 +26,16 @@ let pinchStartZoom = 1;
 
 let canvasEl = null;
 let canvasRect = null;
+
+let longPressTimer = null;
+const LONG_PRESS_MS = 300;
+
+// Box select world coordinates
+let boxStartWorldX = 0;
+let boxStartWorldY = 0;
+let boxEndWorldX = 0;
+let boxEndWorldY = 0;
+let isBoxSelecting = false;
 
 export function initInput(canvas) {
   canvasEl = canvas;
@@ -78,7 +89,26 @@ function onPointerDown(e) {
 
   if (pointers.size === 1 && inViewport(pos.x, pos.y)) {
     state = GestureState.PENDING;
-  } else if (pointers.size === 2) {
+    // Start long-press timer for box select
+    const startPos = { ...pos };
+    longPressTimer = setTimeout(() => {
+      if (state === GestureState.PENDING) {
+        state = GestureState.BOX_SELECTING;
+        isBoxSelecting = true;
+        // Convert screen to world for box start
+        const vx = startPos.x;
+        const vy = startPos.y - TOP_BAR_HEIGHT;
+        boxStartWorldX = getCamX() + vx / getZoom();
+        boxStartWorldY = getCamY() + vy / getZoom();
+        boxEndWorldX = boxStartWorldX;
+        boxEndWorldY = boxStartWorldY;
+      }
+    }, LONG_PRESS_MS);
+  } else if (pointers.size >= 2) {
+    // Cancel any box-select in progress
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    isBoxSelecting = false;
     state = GestureState.PINCHING;
     const pinch = getPinchData();
     if (pinch) {
@@ -114,6 +144,8 @@ function onPointerMove(e) {
     const dx = pos.x - ptr.startX;
     const dy = pos.y - ptr.startY;
     if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
       state = GestureState.DRAGGING;
     }
   }
@@ -131,6 +163,13 @@ function onPointerMove(e) {
       setZoom(newZoom, pinch.midX, pinch.midY);
     }
   }
+
+  if (state === GestureState.BOX_SELECTING && pointers.size === 1) {
+    const vx = pos.x;
+    const vy = pos.y - TOP_BAR_HEIGHT;
+    boxEndWorldX = getCamX() + vx / getZoom();
+    boxEndWorldY = getCamY() + vy / getZoom();
+  }
 }
 
 function onPointerUp(e) {
@@ -139,7 +178,14 @@ function onPointerUp(e) {
   pointers.delete(e.pointerId);
 
   if (pointers.size === 0) {
-    if (state === GestureState.PENDING && ptr) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+
+    if (state === GestureState.BOX_SELECTING) {
+      // Finalize box selection
+      selectInRect(boxStartWorldX, boxStartWorldY, boxEndWorldX, boxEndWorldY);
+      isBoxSelecting = false;
+    } else if (state === GestureState.PENDING && ptr) {
       // Check minimap first
       if (!handleMinimapClick(ptr.startX, ptr.startY)) {
         // Convert screen tap to world coordinates
@@ -176,3 +222,11 @@ function onPointerUp(e) {
 
 export function getGestureState() { return state; }
 export function getHoverTile() { return { x: hoverTileX, y: hoverTileY }; }
+
+export function getBoxSelectState() {
+  if (!isBoxSelecting) return null;
+  return {
+    x1: boxStartWorldX, y1: boxStartWorldY,
+    x2: boxEndWorldX, y2: boxEndWorldY,
+  };
+}
