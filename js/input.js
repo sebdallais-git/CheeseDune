@@ -194,11 +194,13 @@ function onPointerUp(e) {
     } else if (state === GestureState.PENDING && ptr) {
       // Check minimap first
       if (!handleMinimapClick(ptr.startX, ptr.startY)) {
-        // Convert screen tap to world coordinates
+        // Convert screen tap to exact world coordinates (not snapped to tile center)
         const tile = screenToTile(ptr.startX, ptr.startY);
         if (tile) {
-          const worldX = tile.tileX * TILE_SIZE + TILE_SIZE / 2;
-          const worldY = tile.tileY * TILE_SIZE + TILE_SIZE / 2;
+          const vx = ptr.startX;
+          const vy = ptr.startY - TOP_BAR_HEIGHT;
+          const worldX = getCamX() + vx / getZoom();
+          const worldY = getCamY() + vy / getZoom();
 
           const now = performance.now();
           const timeSinceLastTap = now - lastTapTime;
