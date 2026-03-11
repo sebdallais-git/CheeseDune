@@ -135,9 +135,37 @@ function distBetween(a, b) {
 }
 
 /**
+ * Check for vehicle-over-infantry squish kills.
+ * Vehicles kill enemy infantry on contact (within half a tile).
+ */
+function checkSquish() {
+  const allUnits = [...getUnits()]; // Snapshot — handleDeath splices the live array
+  const squishDist = TILE_SIZE * 0.5;
+
+  for (const vehicle of allUnits) {
+    if (!vehicle.alive || vehicle.category !== 'vehicle' || !vehicle.moving) continue;
+    if (vehicle.damage === 0) continue; // Harvesters/MCVs don't squish
+
+    for (const infantry of allUnits) {
+      if (!infantry.alive || infantry.category !== 'infantry') continue;
+      if (infantry.owner === vehicle.owner) continue; // No friendly squish
+
+      const dx = vehicle.x - infantry.x;
+      const dy = vehicle.y - infantry.y;
+      if (Math.sqrt(dx * dx + dy * dy) < squishDist) {
+        // Instant kill
+        infantry.hp = 0;
+        handleDeath(infantry);
+      }
+    }
+  }
+}
+
+/**
  * Main combat update — called each game tick.
  */
 export function updateCombat(dt) {
+  checkSquish();
   const allUnits = getUnits();
 
   for (const unit of allUnits) {
