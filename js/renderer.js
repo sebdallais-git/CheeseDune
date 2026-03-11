@@ -1,7 +1,7 @@
 import {
   CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, TERRAIN_COLORS,
   TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, SIDEBAR_WIDTH,
-  Terrain, FogState
+  Terrain, FogState, BOTTOM_BAR_HEIGHT
 } from './constants.js';
 import { getFogState } from './fog.js';
 import { getCamX, getCamY, getZoom, getVisibleTileRange } from './camera.js';
@@ -159,9 +159,51 @@ export function drawTopBar() {
   ctx.fillText('Alpine Cheese Rush — Phase 1', 10, 20);
 }
 
-export function drawBottomBar() {
+/**
+ * Draw the bottom selection panel.
+ * @param {object[]} selected - array of selected units
+ */
+export function drawSelectionPanel(selected) {
+  const y = CANVAS_HEIGHT - BOTTOM_BAR_HEIGHT;
   ctx.fillStyle = '#0d0d1a';
-  ctx.fillRect(0, CANVAS_HEIGHT - 60, VIEWPORT_WIDTH, 60);
+  ctx.fillRect(0, y, VIEWPORT_WIDTH, BOTTOM_BAR_HEIGHT);
+
+  if (selected.length === 0) return;
+
+  ctx.fillStyle = '#aaa';
+  ctx.font = '12px monospace';
+
+  if (selected.length === 1) {
+    const u = selected[0];
+    // Unit name and HP
+    ctx.fillText(`${u.type}  HP: ${u.hp}/${u.maxHp}`, 10, y + 20);
+    // Mini HP bar
+    const barX = 10;
+    const barY = y + 30;
+    const barW = 120;
+    const barH = 8;
+    const frac = u.hp / u.maxHp;
+    ctx.fillStyle = '#333';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = frac > 0.5 ? '#00cc00' : frac > 0.25 ? '#cccc00' : '#cc0000';
+    ctx.fillRect(barX, barY, barW * frac, barH);
+  } else {
+    // Multiple selected
+    ctx.fillText(`${selected.length} units selected`, 10, y + 20);
+    // Count by type
+    const counts = {};
+    for (const u of selected) {
+      counts[u.type] = (counts[u.type] || 0) + 1;
+    }
+    let xOffset = 10;
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#888';
+    for (const [type, count] of Object.entries(counts)) {
+      ctx.fillText(`${type}: ${count}`, xOffset, y + 42);
+      xOffset += 120;
+      if (xOffset > VIEWPORT_WIDTH - 50) break;
+    }
+  }
 }
 
 export function drawMinimap() {
