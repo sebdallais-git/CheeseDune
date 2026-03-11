@@ -42,6 +42,14 @@ export function spawnUnit(type, faction, tileX, tileY, owner) {
     moving: false,
     // Direction the unit faces (radians, 0 = right)
     facing: Math.PI * 1.5,    // Default: facing up
+    // Combat state
+    target: null,              // Unit object this unit is attacking
+    attackCooldown: 0,         // Time until next attack (seconds)
+    attackMoving: false,       // True if doing attack-move (engage enemies while moving)
+    attackSpeed: stats.attackSpeed || 0,
+    shotsPerAttack: stats.shotsPerAttack || 1,
+    splash: stats.splash || false,
+    alive: true,
     // Note: selection state is managed by selection.js, not stored on the unit
   };
 
@@ -176,8 +184,44 @@ export function getUnitsOfType(type, owner) {
  * Remove a unit (on death).
  */
 export function removeUnit(unit) {
+  unit.alive = false;
   const idx = units.indexOf(unit);
   if (idx !== -1) units.splice(idx, 1);
+}
+
+/**
+ * Get all enemy units within attack range of a unit.
+ * Range is in tiles, converted to world pixels for distance check.
+ */
+export function getEnemiesInRange(unit) {
+  const rangePixels = unit.range * TILE_SIZE;
+  return units.filter(u => {
+    if (u.owner === unit.owner || !u.alive) return false;
+    const dx = u.x - unit.x;
+    const dy = u.y - unit.y;
+    return Math.sqrt(dx * dx + dy * dy) <= rangePixels;
+  });
+}
+
+/**
+ * Get the nearest enemy unit to a given unit.
+ */
+export function getNearestEnemy(unit) {
+  let nearest = null;
+  let nearestDist = Infinity;
+
+  for (const u of units) {
+    if (u.owner === unit.owner || !u.alive) continue;
+    const dx = u.x - unit.x;
+    const dy = u.y - unit.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < nearestDist) {
+      nearestDist = dist;
+      nearest = u;
+    }
+  }
+
+  return nearest;
 }
 
 export function clearUnits() {
