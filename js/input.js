@@ -1,6 +1,6 @@
 // Game/public/dune/js/input.js
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
-import { moveCamera, getZoom } from './camera.js';
+import { moveCamera, getZoom, setZoom } from './camera.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -13,6 +13,9 @@ const GestureState = {
 
 let state = GestureState.IDLE;
 let pointers = new Map();
+
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
 
 let canvasEl = null;
 let canvasRect = null;
@@ -31,6 +34,17 @@ export function initInput(canvas) {
   canvas.addEventListener('pointercancel', onPointerUp);
 
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+function getPinchData() {
+  const pts = Array.from(pointers.values());
+  if (pts.length < 2) return null;
+  const dx = pts[1].x - pts[0].x;
+  const dy = pts[1].y - pts[0].y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const midX = (pts[0].x + pts[1].x) / 2;
+  const midY = (pts[0].y + pts[1].y) / 2 - TOP_BAR_HEIGHT; // viewport-relative
+  return { dist, midX, midY };
 }
 
 function canvasCoords(e) {
@@ -59,6 +73,11 @@ function onPointerDown(e) {
     state = GestureState.PENDING;
   } else if (pointers.size === 2) {
     state = GestureState.PINCHING;
+    const pinch = getPinchData();
+    if (pinch) {
+      pinchStartDist = pinch.dist;
+      pinchStartZoom = getZoom();
+    }
   }
 }
 
@@ -87,7 +106,12 @@ function onPointerMove(e) {
   }
 
   if (state === GestureState.PINCHING && pointers.size === 2) {
-    // Pinch handled in Task 7
+    const pinch = getPinchData();
+    if (pinch && pinchStartDist > 0) {
+      const scale = pinch.dist / pinchStartDist;
+      const newZoom = pinchStartZoom * scale;
+      setZoom(newZoom, pinch.midX, pinch.midY);
+    }
   }
 }
 
