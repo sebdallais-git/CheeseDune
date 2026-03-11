@@ -128,3 +128,109 @@ export const SPLASH_RADIUS = 48; // 1.5 tiles
 
 // Projectile speed (world pixels per second)
 export const PROJECTILE_SPEED = 300;
+
+// Building type IDs
+export const BuildingType = {
+  CONSTRUCTION_YARD: 'constructionYard',
+  POWER_PLANT: 'powerPlant',
+  REFINERY: 'refinery',
+  SILO: 'silo',
+  BARRACKS: 'barracks',
+  LIGHT_FACTORY: 'lightFactory',
+  HEAVY_FACTORY: 'heavyFactory',
+  RADAR: 'radar',
+  TURRET: 'turret',
+  ROCKET_TURRET: 'rocketTurret',
+  REPAIR_PAD: 'repairPad',
+  STARPORT: 'starport',
+  PALACE: 'palace',
+};
+
+// Building stats
+// footprint: [width, height] in tiles
+// power: positive = produces, negative = consumes
+// requires: array of BuildingType prerequisites
+export const BuildingStats = {
+  [BuildingType.CONSTRUCTION_YARD]: {
+    hp: 1000, power: 20, cost: 0, buildTime: 0,
+    footprint: [3, 3], concreteRadius: 6,
+    requires: [], produces: [],
+  },
+  [BuildingType.POWER_PLANT]: {
+    hp: 400, power: 30, cost: 200, buildTime: 15,
+    footprint: [2, 2],
+    requires: [BuildingType.CONSTRUCTION_YARD], produces: [],
+  },
+  [BuildingType.REFINERY]: {
+    hp: 600, power: -15, cost: 300, buildTime: 20,
+    footprint: [3, 2], storage: 1000, freeUnit: 'harvester',
+    requires: [BuildingType.CONSTRUCTION_YARD], produces: ['harvester'],
+  },
+  [BuildingType.SILO]: {
+    hp: 300, power: -3, cost: 100, buildTime: 10,
+    footprint: [1, 1], storage: 500,
+    requires: [BuildingType.REFINERY], produces: [],
+  },
+  [BuildingType.BARRACKS]: {
+    hp: 500, power: -10, cost: 250, buildTime: 15,
+    footprint: [2, 2],
+    requires: [BuildingType.CONSTRUCTION_YARD],
+    produces: ['lightInfantry', 'heavyInfantry', 'rocketInfantry'],
+  },
+  [BuildingType.LIGHT_FACTORY]: {
+    hp: 500, power: -15, cost: 400, buildTime: 20,
+    footprint: [3, 2],
+    requires: [BuildingType.BARRACKS],
+    produces: ['lightVehicle', 'mediumVehicle'],
+  },
+  [BuildingType.HEAVY_FACTORY]: {
+    hp: 600, power: -20, cost: 600, buildTime: 25,
+    footprint: [3, 3],
+    requires: [BuildingType.LIGHT_FACTORY],
+    produces: ['tank', 'siegeTank', 'rocketLauncher', 'mcv'],
+  },
+  [BuildingType.RADAR]: {
+    hp: 400, power: -15, cost: 350, buildTime: 20,
+    footprint: [2, 2],
+    requires: [BuildingType.CONSTRUCTION_YARD], produces: [],
+  },
+  [BuildingType.TURRET]: {
+    hp: 300, power: -5, cost: 150, buildTime: 10,
+    footprint: [1, 1],
+    range: 4, damage: 20, attackSpeed: 1.0,
+    requires: [BuildingType.CONSTRUCTION_YARD], produces: [],
+  },
+  [BuildingType.ROCKET_TURRET]: {
+    hp: 350, power: -8, cost: 250, buildTime: 15,
+    footprint: [1, 1],
+    range: 6, damage: 50, attackSpeed: 0.5,
+    requires: [BuildingType.RADAR], produces: [],
+  },
+  [BuildingType.REPAIR_PAD]: {
+    hp: 400, power: -10, cost: 300, buildTime: 15,
+    footprint: [2, 2], healRate: 10, healCost: 5,
+    requires: [BuildingType.HEAVY_FACTORY], produces: [],
+  },
+  [BuildingType.STARPORT]: {
+    hp: 500, power: -20, cost: 500, buildTime: 25,
+    footprint: [3, 3],
+    requires: [BuildingType.RADAR], produces: [],
+  },
+  [BuildingType.PALACE]: {
+    hp: 800, power: -25, cost: 800, buildTime: 30,
+    footprint: [3, 3],
+    requires: [BuildingType.HEAVY_FACTORY, BuildingType.RADAR],
+    produces: ['superUnit'],
+  },
+};
+
+// Harvester constants
+export const HARVESTER_CAPACITY = 700;   // Max cheese a harvester can carry
+export const HARVEST_RATE = 50;          // Cheese per second while harvesting
+export const UNLOAD_RATE = 100;          // Cheese per second while unloading
+export const PASTURE_CHEESE = 2000;      // Total cheese in a pasture tile
+export const PASTURE_REGEN_RATE = 2;     // Cheese per second regeneration
+export const BUILDING_DECAY_RATE = 5;    // HP/s for buildings not on concrete
+
+// Base storage (Construction Yard provides this)
+export const BASE_STORAGE = 1000;
