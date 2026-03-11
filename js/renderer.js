@@ -11,6 +11,37 @@ import { getHoverTile } from './input.js';
 
 let canvas, ctx, dpr;
 
+let frameCount = 0;
+let fps = 0;
+let fpsTimer = 0;
+
+export function updateFps(dt) {
+  frameCount++;
+  fpsTimer += dt;
+  if (fpsTimer >= 1.0) {
+    fps = frameCount;
+    frameCount = 0;
+    fpsTimer -= 1.0;
+  }
+}
+
+export function drawDebugInfo() {
+  const z = getZoom();
+  const cx = getCamX();
+  const cy = getCamY();
+  const { x: hx, y: hy } = getHoverTile();
+
+  ctx.fillStyle = '#0d0d1a';
+  ctx.fillRect(0, 0, VIEWPORT_WIDTH, TOP_BAR_HEIGHT);
+
+  ctx.fillStyle = '#888';
+  ctx.font = '11px monospace';
+  ctx.fillText(
+    `Cam: ${Math.round(cx)},${Math.round(cy)}  Zoom: ${z.toFixed(2)}x  Tile: ${hx},${hy}  FPS: ${fps}`,
+    10, 20
+  );
+}
+
 export function initRenderer() {
   canvas = document.getElementById('game');
   ctx = canvas.getContext('2d');

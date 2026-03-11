@@ -3,7 +3,8 @@ import { createTestMap, initMap } from './map.js';
 import { initCamera, centerOnTile } from './camera.js';
 import {
   initRenderer, clearScreen, drawTiles, drawGrid, drawFog,
-  drawHoverTile, drawSidebar, drawTopBar, drawBottomBar, drawMinimap, getCanvas
+  drawHoverTile, drawSidebar, drawBottomBar, drawMinimap,
+  drawDebugInfo, updateFps, getCanvas
 } from './renderer.js';
 import { startEngine, onDraw, onTick } from './engine.js';
 import { initInput } from './input.js';
@@ -36,7 +37,7 @@ function init() {
   onDraw('grid', () => drawGrid());
   onDraw('fog', () => drawFog());
   onDraw('hover', () => drawHoverTile());
-  onDraw('topBar', () => drawTopBar());
+  onDraw('topBar', (dt) => { updateFps(dt); drawDebugInfo(); });
   onDraw('bottomBar', () => drawBottomBar());
   onDraw('sidebar', () => drawSidebar());
   onDraw('minimap', () => drawMinimap());
