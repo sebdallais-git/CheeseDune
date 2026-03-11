@@ -1,6 +1,6 @@
 // Game/public/dune/js/input.js
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
-import { moveCamera, getZoom, setZoom } from './camera.js';
+import { moveCamera, getZoom, setZoom, screenToTile } from './camera.js';
 import { handleMinimapClick } from './minimap.js';
 
 const DRAG_THRESHOLD = 8;
@@ -14,6 +14,9 @@ const GestureState = {
 
 let state = GestureState.IDLE;
 let pointers = new Map();
+
+let hoverTileX = -1;
+let hoverTileY = -1;
 
 let pinchStartDist = 0;
 let pinchStartZoom = 1;
@@ -93,6 +96,17 @@ function onPointerMove(e) {
   ptr.x = pos.x;
   ptr.y = pos.y;
 
+  if (pointers.size === 1) {
+    const tile = screenToTile(pos.x, pos.y);
+    if (tile) {
+      hoverTileX = tile.tileX;
+      hoverTileY = tile.tileY;
+    } else {
+      hoverTileX = -1;
+      hoverTileY = -1;
+    }
+  }
+
   if (state === GestureState.PENDING) {
     const dx = pos.x - ptr.startX;
     const dy = pos.y - ptr.startY;
@@ -128,6 +142,8 @@ function onPointerUp(e) {
         // Not on minimap — handle as map tap (unit selection etc. in later phases)
       }
     }
+    hoverTileX = -1;
+    hoverTileY = -1;
     state = GestureState.IDLE;
   } else if (pointers.size === 1) {
     state = GestureState.DRAGGING;
@@ -135,3 +151,4 @@ function onPointerUp(e) {
 }
 
 export function getGestureState() { return state; }
+export function getHoverTile() { return { x: hoverTileX, y: hoverTileY }; }

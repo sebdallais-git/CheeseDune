@@ -2,8 +2,8 @@
 import { createTestMap, initMap } from './map.js';
 import { initCamera, centerOnTile } from './camera.js';
 import {
-  initRenderer, clearScreen, drawTiles, drawFog, drawSidebar,
-  drawTopBar, drawBottomBar, drawMinimap, getCanvas
+  initRenderer, clearScreen, drawTiles, drawGrid, drawFog,
+  drawHoverTile, drawSidebar, drawTopBar, drawBottomBar, drawMinimap, getCanvas
 } from './renderer.js';
 import { startEngine, onDraw, onTick } from './engine.js';
 import { initInput } from './input.js';
@@ -33,7 +33,9 @@ function init() {
 
   onDraw('clear', () => clearScreen());
   onDraw('tiles', () => drawTiles());
+  onDraw('grid', () => drawGrid());
   onDraw('fog', () => drawFog());
+  onDraw('hover', () => drawHoverTile());
   onDraw('topBar', () => drawTopBar());
   onDraw('bottomBar', () => drawBottomBar());
   onDraw('sidebar', () => drawSidebar());

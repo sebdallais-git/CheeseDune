@@ -7,6 +7,7 @@ import { getFogState } from './fog.js';
 import { getCamX, getCamY, getZoom, getVisibleTileRange } from './camera.js';
 import { getTile, getMapWidth, getMapHeight } from './map.js';
 import { drawMinimap as drawMinimapImpl } from './minimap.js';
+import { getHoverTile } from './input.js';
 
 let canvas, ctx, dpr;
 
@@ -142,6 +143,65 @@ export function drawFog() {
       ctx.fillRect(sx, sy, size + 0.5, size + 0.5);
     }
   }
+
+  ctx.restore();
+}
+
+export function drawGrid() {
+  const { startX, startY, endX, endY } = getVisibleTileRange();
+  const z = getZoom();
+  const cx = getCamX();
+  const cy = getCamY();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  ctx.clip();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+  ctx.lineWidth = 0.5;
+
+  // Vertical lines
+  for (let x = startX; x <= endX + 1; x++) {
+    const sx = (x * TILE_SIZE - cx) * z;
+    ctx.beginPath();
+    ctx.moveTo(sx, TOP_BAR_HEIGHT);
+    ctx.lineTo(sx, TOP_BAR_HEIGHT + VIEWPORT_HEIGHT);
+    ctx.stroke();
+  }
+
+  // Horizontal lines
+  for (let y = startY; y <= endY + 1; y++) {
+    const sy = (y * TILE_SIZE - cy) * z + TOP_BAR_HEIGHT;
+    ctx.beginPath();
+    ctx.moveTo(0, sy);
+    ctx.lineTo(VIEWPORT_WIDTH, sy);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+export function drawHoverTile() {
+  const { x: hx, y: hy } = getHoverTile();
+  if (hx < 0 || hy < 0) return;
+  if (getFogState(hx, hy) !== FogState.VISIBLE) return;
+
+  const z = getZoom();
+  const cx = getCamX();
+  const cy = getCamY();
+  const sx = (hx * TILE_SIZE - cx) * z;
+  const sy = (hy * TILE_SIZE - cy) * z + TOP_BAR_HEIGHT;
+  const size = TILE_SIZE * z;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  ctx.clip();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(sx + 1, sy + 1, size - 2, size - 2);
 
   ctx.restore();
 }
