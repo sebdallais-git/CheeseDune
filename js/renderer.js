@@ -9,6 +9,8 @@ import { getTile, getMapWidth, getMapHeight } from './map.js';
 import { drawMinimap as drawMinimapImpl } from './minimap.js';
 import { getHoverTile } from './input.js';
 import { drawUnits as drawUnitsImpl, drawSelectionBox as drawSelectionBoxImpl } from './unit-renderer.js';
+import { drawBuildings as drawBuildingsImpl, drawPlacementPreview as drawPlacementPreviewImpl } from './building-renderer.js';
+import { drawSidebar as drawSidebarImpl } from './sidebar.js';
 import { drawProjectiles as drawProjectilesImpl } from './projectiles.js';
 import { drawParticles as drawParticlesImpl } from './particles.js';
 
@@ -149,8 +151,7 @@ export function drawTiles() {
 }
 
 export function drawSidebar() {
-  ctx.fillStyle = '#111118';
-  ctx.fillRect(VIEWPORT_WIDTH, 0, SIDEBAR_WIDTH, CANVAS_HEIGHT);
+  drawSidebarImpl(ctx);
 }
 
 export function drawTopBar() {
@@ -293,6 +294,14 @@ export function drawProjectiles() {
 
 export function drawParticles() {
   drawParticlesImpl(ctx);
+}
+
+export function drawBuildings() {
+  drawBuildingsImpl(ctx);
+}
+
+export function drawPlacementPreview(type, tileX, tileY, valid) {
+  drawPlacementPreviewImpl(ctx, type, tileX, tileY, valid);
 }
 
 export function drawHoverTile() {
