@@ -47,3 +47,15 @@ export function selectAllOfType(unit) {
 export function hasSelection() {
   return selectedUnits.length > 0;
 }
+
+/**
+ * Remove dead units from selection. Called each game tick.
+ */
+export function cleanSelection() {
+  const before = selectedUnits.length;
+  selectedUnits = selectedUnits.filter(u => u.alive);
+  if (selectedUnits.length !== before) {
+    selectedSet.clear();
+    for (const u of selectedUnits) selectedSet.add(u);
+  }
+}
