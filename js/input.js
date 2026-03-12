@@ -98,23 +98,24 @@ function onPointerDown(e) {
     startX: pos.x, startY: pos.y,
   });
 
-  if (pointers.size === 1 && inViewport(pos.x, pos.y)) {
+  if (pointers.size === 1) {
     state = GestureState.PENDING;
-    // Start long-press timer for box select
-    const startPos = { ...pos };
-    longPressTimer = setTimeout(() => {
-      if (state === GestureState.PENDING) {
-        state = GestureState.BOX_SELECTING;
-        isBoxSelecting = true;
-        // Convert screen to world for box start
-        const vx = startPos.x;
-        const vy = startPos.y - TOP_BAR_HEIGHT;
-        boxStartWorldX = getCamX() + vx / getZoom();
-        boxStartWorldY = getCamY() + vy / getZoom();
-        boxEndWorldX = boxStartWorldX;
-        boxEndWorldY = boxStartWorldY;
-      }
-    }, LONG_PRESS_MS);
+    // Start long-press timer for box select (only in viewport)
+    if (inViewport(pos.x, pos.y)) {
+      const startPos = { ...pos };
+      longPressTimer = setTimeout(() => {
+        if (state === GestureState.PENDING) {
+          state = GestureState.BOX_SELECTING;
+          isBoxSelecting = true;
+          const vx = startPos.x;
+          const vy = startPos.y - TOP_BAR_HEIGHT;
+          boxStartWorldX = getCamX() + vx / getZoom();
+          boxStartWorldY = getCamY() + vy / getZoom();
+          boxEndWorldX = boxStartWorldX;
+          boxEndWorldY = boxStartWorldY;
+        }
+      }, LONG_PRESS_MS);
+    }
   } else if (pointers.size >= 2) {
     // Cancel any box-select in progress
     clearTimeout(longPressTimer);
@@ -209,8 +210,8 @@ function onPointerUp(e) {
           // Sidebar handled the tap
         } else if (getPlacementMode() && tile) {
           // In building placement mode — try to place
-          placePendingBuilding('player', tile.tileX, tile.tileY);
-          clearPlacementMode();
+          const placed = placePendingBuilding('player', tile.tileX, tile.tileY);
+          if (placed) clearPlacementMode();
         } else if (!handleMinimapClick(ptr.startX, ptr.startY)) {
           // Convert screen tap to exact world coordinates (not snapped to tile center)
           if (tile) {

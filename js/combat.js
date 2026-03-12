@@ -330,7 +330,7 @@ export function updateCombat(dt) {
       }
     }
 
-    // If no unit target, try targeting enemy buildings
+    // If no unit target, auto-target enemy buildings within weapon range only
     if (!unit.target && !unit.moving) {
       const buildings = getBuildings();
       const rangePixels = unit.range * TILE_SIZE;
@@ -343,7 +343,7 @@ export function updateCombat(dt) {
         const dx = bx - unit.x;
         const dy = by - unit.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < closestBuildingDist) {
+        if (dist <= rangePixels && dist < closestBuildingDist) {
           closestBuildingDist = dist;
           closestBuilding = b;
         }
