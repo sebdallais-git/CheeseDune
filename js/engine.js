@@ -8,6 +8,11 @@ let playing = false;
 const updateCallbacks = [];
 const drawCallbacks = [];
 
+// Single draw callback (Three.js renderer) — takes priority over drawCallbacks
+let drawCallback = null;
+
+export function setDrawCallback(fn) { drawCallback = fn; }
+
 export function onTick(name, fn) {
   updateCallbacks.push({ name, fn });
 }
@@ -19,6 +24,7 @@ export function onDraw(name, fn) {
 export function clearCallbacks() {
   updateCallbacks.length = 0;
   drawCallbacks.length = 0;
+  // NOTE: drawCallback is NOT cleared — it persists across games
 }
 
 export function setPlaying(value) { playing = value; }
@@ -50,9 +56,13 @@ function loop(now) {
     }
   }
 
-  // Draw callbacks always run (state-aware)
-  for (const cb of drawCallbacks) {
-    cb.fn(dt);
+  // Draw: use single drawCallback if set, otherwise fallback to drawCallbacks
+  if (drawCallback) {
+    drawCallback(dt);
+  } else {
+    for (const cb of drawCallbacks) {
+      cb.fn(dt);
+    }
   }
 
   requestAnimationFrame(loop);

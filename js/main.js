@@ -1,40 +1,44 @@
-// Game/public/dune/js/main.js
+// Game/public/dune/js/main.js — Main entry point (Three.js migration)
 import { initMap } from './map.js';
-import { initCamera, centerOnTile } from './camera.js';
 import {
-  initRenderer, clearScreen, drawTiles, drawGrid, drawFog,
-  drawHoverTile, drawSidebar, drawMinimap,
-  drawDebugInfo, updateFps, drawUnits, drawSelectionBox,
-  drawSelectionPanel, drawProjectiles, drawParticles,
-  drawBuildings, drawPlacementPreview, drawCheeseZones,
-  getCanvas, getCtx
-} from './renderer.js';
-import { startEngine, onDraw, onTick, clearCallbacks, setPlaying } from './engine.js';
-import { initInput, getBoxSelectState, getHoverTile } from './input.js';
+  initThreeRenderer, rebuildScene, draw as threeDraw,
+  getScene, getThreeCanvas, registerSync
+} from './three-renderer.js';
+import { centerOnTile } from './three-camera.js';
+import { startEngine, onTick, clearCallbacks, setPlaying, setDrawCallback } from './engine.js';
+import { initInput } from './input.js';
 import { initFog, resetVisibility, revealArea } from './fog.js';
 import { initMinimap } from './minimap.js';
 import { spawnUnit, updateUnits, getUnits, clearUnits } from './units.js';
-import { getSelectedUnits, cleanSelection } from './selection.js';
+import { cleanSelection } from './selection.js';
 import { UnitType, TILE_SIZE, BuildingType } from './constants.js';
 import { updateCombat, clearCheeseZones } from './combat.js';
 import { updateProjectiles, clearProjectiles } from './projectiles.js';
 import { updateParticles, clearParticles } from './particles.js';
-import { placeBuilding, updateBuildings, getBuildings, canPlaceBuilding, clearBuildings } from './buildings.js';
+import { placeBuilding, updateBuildings, getBuildings, clearBuildings } from './buildings.js';
 import { initEconomy, resetEconomy } from './economy.js';
 import { updateConstruction, clearConstruction, setOnBuildComplete } from './construction.js';
 import { updateHarvesters } from './harvester-ai.js';
-import { getPlacementMode, setPlacementMode, setPlayerFaction, updateSidebarCooldown, setOnSurrender } from './sidebar.js';
+import { setPlacementMode, setPlayerFaction, updateSidebarCooldown, setOnSurrender } from './sidebar.js';
 import { generateMap } from './mapgen.js';
 import { createAI, updateAI, clearAI } from './ai.js';
 import { updateStarports } from './starport.js';
 import {
-  GameStateId, getGameState, setGameState,
-  getSkirmishSettings, drawMainMenu, drawSkirmishSetup,
-  drawCampaignSetup, drawResultOverlay, handleMenuInput,
+  GameStateId, setGameState,
+  getSkirmishSettings,
   addGameTime, resetGameTime,
   registerOwnerFaction, clearOwnerFactions,
   setOnStartGame, getCampaignMission, advanceCampaign
 } from './game-states.js';
+
+// Sub-renderer stubs
+import { init as initFog3D, sync as syncFog3D } from './three-fog.js';
+import { init as initUnits3D, sync as syncUnits3D } from './three-unit-renderer.js';
+import { init as initBuildings3D, sync as syncBuildings3D } from './three-building-renderer.js';
+import { init as initParticles3D, sync as syncParticles3D } from './three-particles.js';
+import { init as initProjectiles3D, sync as syncProjectiles3D } from './three-projectiles.js';
+import { init as initEnv3D, sync as syncEnv3D, buildEnvironment } from './three-environment.js';
+import { initUI, sync as syncUI, showMenu, hideGameUI, showGameUI } from './three-ui.js';
 
 let isCampaignGame = false;
 
@@ -75,7 +79,6 @@ function startGame(mode) {
 
   // Initialize systems with new map
   initMap(map.width, map.height, map.data);
-  initCamera();
   initFog();
   initMinimap();
 
@@ -163,52 +166,15 @@ function startGame(mode) {
   });
   onTick('victory', () => checkVictoryDefeat());
 
-  // Wire draws
-  onDraw('clear', () => clearScreen());
-  onDraw('tiles', () => drawTiles());
-  onDraw('grid', () => drawGrid());
-  onDraw('buildings', () => drawBuildings());
-  onDraw('fog', () => drawFog());
-  onDraw('units', () => drawUnits());
-  onDraw('projectiles', () => drawProjectiles());
-  onDraw('particles', () => drawParticles());
-  onDraw('cheeseZones', () => drawCheeseZones());
-  onDraw('hover', () => drawHoverTile());
-  onDraw('placement', () => {
-    const mode = getPlacementMode();
-    if (mode) {
-      const hover = getHoverTile();
-      if (hover.x >= 0 && hover.y >= 0) {
-        const valid = canPlaceBuilding(mode, hover.x, hover.y, 'player');
-        drawPlacementPreview(mode, hover.x, hover.y, valid);
-      }
-    }
-  });
-  onDraw('boxSelect', () => {
-    const box = getBoxSelectState();
-    if (box) drawSelectionBox(box.x1, box.y1, box.x2, box.y2);
-  });
-  onDraw('topBar', (dt) => { updateFps(dt); drawDebugInfo(); });
-  onDraw('bottomBar', () => drawSelectionPanel(getSelectedUnits()));
-  onDraw('sidebar', () => drawSidebar());
-  onDraw('minimap', () => drawMinimap());
-  // Re-register menu overlay (clearCallbacks removed the one from init)
-  onDraw('menuOverlay', () => {
-    const state = getGameState();
-    const ctx = getCtx();
-    if (state === GameStateId.MAIN_MENU) {
-      drawMainMenu(ctx);
-    } else if (state === GameStateId.SKIRMISH_SETUP) {
-      drawSkirmishSetup(ctx);
-    } else if (state === GameStateId.CAMPAIGN_SETUP) {
-      drawCampaignSetup(ctx);
-    } else if (state === GameStateId.VICTORY || state === GameStateId.DEFEAT) {
-      drawResultOverlay(ctx);
-    }
-  });
+  // Build Three.js terrain and environment
+  rebuildScene();
+  buildEnvironment();
 
   // Center camera on player start
   centerOnTile(playerStart.x + 2, playerStart.y + 2);
+
+  // Show game UI, hide menus
+  showGameUI();
 
   setPlaying(true);
   setGameState(GameStateId.PLAYING);
@@ -238,26 +204,44 @@ function checkVictoryDefeat() {
 }
 
 function init() {
-  initRenderer();
-  initInput(getCanvas());
+  // Initialize Three.js renderer, scene, lights, post-processing
+  initThreeRenderer();
 
+  // Initialize HTML overlay UI
+  initUI();
+
+  // Initialize all sub-renderers with the scene
+  const scene = getScene();
+  initFog3D(scene);
+  initUnits3D(scene);
+  initBuildings3D(scene);
+  initParticles3D(scene);
+  initProjectiles3D(scene);
+  initEnv3D(scene);
+
+  // Register sync callbacks
+  registerSync('fog', syncFog3D);
+  registerSync('units', syncUnits3D);
+  registerSync('buildings', syncBuildings3D);
+  registerSync('particles', syncParticles3D);
+  registerSync('projectiles', syncProjectiles3D);
+  registerSync('environment', syncEnv3D);
+  registerSync('ui', syncUI);
+
+  // Initialize input using Three.js canvas
+  initInput(getThreeCanvas());
+
+  // Set the single draw callback (Three.js render loop)
+  setDrawCallback(threeDraw);
+
+  // Wire start game callback
   setOnStartGame(startGame);
 
-  // Menu draw (always runs, state-aware)
-  onDraw('menuOverlay', () => {
-    const state = getGameState();
-    const ctx = getCtx();
-    if (state === GameStateId.MAIN_MENU) {
-      drawMainMenu(ctx);
-    } else if (state === GameStateId.SKIRMISH_SETUP) {
-      drawSkirmishSetup(ctx);
-    } else if (state === GameStateId.CAMPAIGN_SETUP) {
-      drawCampaignSetup(ctx);
-    } else if (state === GameStateId.VICTORY || state === GameStateId.DEFEAT) {
-      drawResultOverlay(ctx);
-    }
-  });
+  // Show main menu, hide game UI
+  hideGameUI();
+  showMenu(GameStateId.MAIN_MENU);
 
+  // Start the engine loop
   startEngine();
 }
 
