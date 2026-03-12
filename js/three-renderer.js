@@ -72,7 +72,7 @@ function getTerrainGeometry(height) {
 
 // --- Sky dome ---
 function createSky() {
-  const skyGeo = new THREE.SphereGeometry(400, 32, 16);
+  const skyGeo = new THREE.SphereGeometry(1500, 32, 16);
   const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
@@ -127,7 +127,7 @@ export function initThreeRenderer() {
 
   // Create scene
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
+  scene.fog = new THREE.FogExp2(0x87ceeb, 0.001);
 
   // Sky
   scene.add(createSky());

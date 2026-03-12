@@ -214,6 +214,7 @@ export function initUI() {
     buildProgressFill: document.getElementById('build-progress-fill'),
     surrenderBtn: document.getElementById('surrender-btn'),
     // Minimap
+    minimapContainer: document.getElementById('minimap-container'),
     minimapCanvas: document.getElementById('minimap-canvas'),
     // Selection
     selectionInfo: document.getElementById('selection-info'),
@@ -526,6 +527,7 @@ export function showGameUI() {
   if (dom.sidebar) dom.sidebar.style.display = '';
   if (dom.resourceBar) dom.resourceBar.style.display = '';
   if (dom.selectionPanel) dom.selectionPanel.style.display = '';
+  if (dom.minimapContainer) dom.minimapContainer.style.display = '';
 
   // Hide all menu screens
   const allMenus = document.querySelectorAll('.menu-screen, .result-overlay');
@@ -557,6 +559,7 @@ export function hideGameUI() {
   if (dom.sidebar) dom.sidebar.style.display = 'none';
   if (dom.resourceBar) dom.resourceBar.style.display = 'none';
   if (dom.selectionPanel) dom.selectionPanel.style.display = 'none';
+  if (dom.minimapContainer) dom.minimapContainer.style.display = 'none';
 }
 
 // ================================================================

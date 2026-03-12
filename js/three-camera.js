@@ -3,9 +3,9 @@ import * as THREE from 'three';
 import { TILE_SIZE } from './constants.js';
 import { getMapWidth, getMapHeight } from './map.js';
 
-const DEFAULT_FRUSTUM = 20; // half-size in world units
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 2.5;
+const DEFAULT_FRUSTUM = 280; // half-size in world units (~17 tiles visible at zoom 1.0)
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 3.0;
 
 let camera = null;
 let raycaster = null;
@@ -19,6 +19,11 @@ let zoomLevel = 1.0;
 let camTargetX = 0;
 let camTargetZ = 0;
 
+// Orbital rotation: yaw around Y axis, fixed elevation
+// Initial yaw = PI/4 gives the classic (1,1,1) isometric direction
+let cameraYaw = Math.PI / 4;
+const CAMERA_ELEVATION = Math.atan(1 / Math.SQRT2); // ~35.26° — true isometric angle
+
 export function initCamera(mapWidth, mapHeight) {
   // Reuse existing camera to preserve RenderPass reference
   if (!camera) {
@@ -26,19 +31,14 @@ export function initCamera(mapWidth, mapHeight) {
     camera = new THREE.OrthographicCamera(
       -frustumHalf * aspect, frustumHalf * aspect,
       frustumHalf, -frustumHalf,
-      0.1, 500
+      0.1, 2000
     );
   }
 
-  // Reset zoom and position state
+  // Reset zoom, rotation, and position state
   zoomLevel = 1.0;
   frustumHalf = DEFAULT_FRUSTUM;
-
-  // Classic isometric direction: (1, 1, 1) normalized
-  const dir = new THREE.Vector3(1, 1, 1).normalize();
-  const dist = 100;
-  camera.position.set(dir.x * dist, dir.y * dist, dir.z * dist);
-  camera.lookAt(0, 0, 0);
+  cameraYaw = Math.PI / 4;
 
   // Center on map if dimensions provided
   if (mapWidth > 0 && mapHeight > 0) {
@@ -154,6 +154,19 @@ export function getZoom() {
 }
 
 /**
+ * Rotate the camera yaw by a delta angle (radians).
+ * Rotates around the current view center.
+ */
+export function rotateCamera(deltaYaw) {
+  cameraYaw += deltaYaw;
+  _applyPosition();
+}
+
+export function getCameraYaw() {
+  return cameraYaw;
+}
+
+/**
  * Snap camera to center on a tile (game tile coordinates).
  */
 export function centerOnTile(tx, ty) {
@@ -211,19 +224,22 @@ export function handleResize() {
 export function updateCameraUniforms(sunLight) {
   if (!sunLight || !sunLight.shadow || !camera) return;
   const shadowCam = sunLight.shadow.camera;
-  const range = frustumHalf * 1.5;
+  // Cap shadow range to keep shadow map sharp even when zoomed out
+  const range = Math.min(frustumHalf * 1.5, 250);
   shadowCam.left = -range;
   shadowCam.right = range;
   shadowCam.top = range;
   shadowCam.bottom = -range;
   shadowCam.near = 0.5;
-  shadowCam.far = 300;
+  shadowCam.far = 1000;
 
-  // Move sun light and shadow camera to follow the view center
-  sunLight.position.set(camTargetX + 50, 80, camTargetZ + 50);
+  // Move sun light and shadow camera to follow the view center and camera yaw
+  const sunOffX = Math.cos(cameraYaw) * 200;
+  const sunOffZ = Math.sin(cameraYaw) * 200;
+  sunLight.position.set(camTargetX + sunOffX, 300, camTargetZ + sunOffZ);
   const lightDir = sunLight.position.clone().normalize();
   shadowCam.position.copy(
-    new THREE.Vector3(camTargetX, 0, camTargetZ).add(lightDir.multiplyScalar(100))
+    new THREE.Vector3(camTargetX, 0, camTargetZ).add(lightDir.multiplyScalar(400))
   );
   sunLight.target.position.set(camTargetX, 0, camTargetZ);
   sunLight.target.updateMatrixWorld();
@@ -244,8 +260,15 @@ function _updateProjection() {
 
 function _applyPosition() {
   if (!camera) return;
-  const dir = new THREE.Vector3(1, 1, 1).normalize();
-  const dist = 100;
+  // Compute camera direction from yaw + fixed elevation
+  const cosElev = Math.cos(CAMERA_ELEVATION);
+  const sinElev = Math.sin(CAMERA_ELEVATION);
+  const dir = new THREE.Vector3(
+    Math.cos(cameraYaw) * cosElev,
+    sinElev,
+    Math.sin(cameraYaw) * cosElev
+  );
+  const dist = 800;
   camera.position.set(
     camTargetX + dir.x * dist,
     dir.y * dist,

@@ -1,5 +1,5 @@
 // Game/public/dune/js/input.js
-import { moveCamera, getZoom, setZoom, screenToTile, screenToWorld } from './three-camera.js';
+import { moveCamera, getZoom, setZoom, rotateCamera, screenToTile, screenToWorld } from './three-camera.js';
 import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
 import { moveUnitTo, getUnitAtPosition } from './units.js';
 import { orderAttack } from './combat.js';
@@ -25,6 +25,7 @@ let hoverTileY = -1;
 
 let pinchStartDist = 0;
 let pinchStartZoom = 1;
+let pinchLastAngle = 0;
 
 let canvasEl = null;
 
@@ -51,6 +52,7 @@ export function initInput(canvas) {
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
 
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 }
@@ -63,11 +65,21 @@ function getPinchData() {
   const dist = Math.sqrt(dx * dx + dy * dy);
   const midX = (pts[0].x + pts[1].x) / 2;
   const midY = (pts[0].y + pts[1].y) / 2;
-  return { dist, midX, midY };
+  const angle = Math.atan2(dy, dx);
+  return { dist, midX, midY, angle };
 }
 
 function canvasCoords(e) {
   return { x: e.clientX, y: e.clientY };
+}
+
+const WHEEL_ZOOM_SPEED = 0.1;
+
+function onWheel(e) {
+  e.preventDefault();
+  const delta = -Math.sign(e.deltaY) * WHEEL_ZOOM_SPEED;
+  const newZoom = getZoom() + delta;
+  setZoom(newZoom, e.clientX, e.clientY);
 }
 
 function onPointerDown(e) {
@@ -104,6 +116,7 @@ function onPointerDown(e) {
     if (pinch) {
       pinchStartDist = pinch.dist;
       pinchStartZoom = getZoom();
+      pinchLastAngle = pinch.angle;
     }
   }
 }
@@ -152,9 +165,20 @@ function onPointerMove(e) {
   if (state === GestureState.PINCHING && pointers.size === 2) {
     const pinch = getPinchData();
     if (pinch && pinchStartDist > 0) {
+      // Zoom from pinch distance
       const scale = pinch.dist / pinchStartDist;
       const newZoom = pinchStartZoom * scale;
       setZoom(newZoom, pinch.midX, pinch.midY);
+
+      // Rotation from angle change between fingers
+      let angleDelta = pinch.angle - pinchLastAngle;
+      // Normalize to [-PI, PI] to handle wrapping
+      if (angleDelta > Math.PI) angleDelta -= 2 * Math.PI;
+      if (angleDelta < -Math.PI) angleDelta += 2 * Math.PI;
+      if (Math.abs(angleDelta) > 0.001) {
+        rotateCamera(-angleDelta);
+      }
+      pinchLastAngle = pinch.angle;
     }
   }
 

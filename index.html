@@ -174,22 +174,27 @@
       border-radius: 2px;
     }
 
-    /* --- Minimap (bottom-right inside sidebar) --- */
+    /* --- Minimap (bottom-left corner, outside sidebar) --- */
     #minimap-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
       padding: 6px;
+      display: none;
     }
     #minimap-canvas {
-      width: 100%;
+      width: 160px;
       height: 140px;
-      background: #000;
+      background: rgba(0, 0, 0, 0.85);
       border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 2px;
     }
 
     /* --- Selection panel (bottom) --- */
     #selection-panel {
       position: absolute;
       bottom: 0;
-      left: 0;
+      left: 172px;
       right: 180px;
       height: 60px;
       display: flex;
@@ -414,10 +419,12 @@
         <span id="build-progress-label"></span>
         <div id="build-progress-bar"><div id="build-progress-fill"></div></div>
       </div>
-      <div id="minimap-container">
-        <canvas id="minimap-canvas"></canvas>
-      </div>
       <button id="surrender-btn">SURRENDER</button>
+    </div>
+
+    <!-- Minimap (bottom-left, outside sidebar) -->
+    <div id="minimap-container" class="interactive">
+      <canvas id="minimap-canvas"></canvas>
     </div>
 
     <!-- Selection panel -->
