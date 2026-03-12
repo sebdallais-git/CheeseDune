@@ -192,11 +192,17 @@ function startGame(mode) {
   onDraw('bottomBar', () => drawSelectionPanel(getSelectedUnits()));
   onDraw('sidebar', () => drawSidebar());
   onDraw('minimap', () => drawMinimap());
-  // Re-register menu overlay for victory/defeat screens
+  // Re-register menu overlay (clearCallbacks removed the one from init)
   onDraw('menuOverlay', () => {
     const state = getGameState();
     const ctx = getCtx();
-    if (state === GameStateId.VICTORY || state === GameStateId.DEFEAT) {
+    if (state === GameStateId.MAIN_MENU) {
+      drawMainMenu(ctx);
+    } else if (state === GameStateId.SKIRMISH_SETUP) {
+      drawSkirmishSetup(ctx);
+    } else if (state === GameStateId.CAMPAIGN_SETUP) {
+      drawCampaignSetup(ctx);
+    } else if (state === GameStateId.VICTORY || state === GameStateId.DEFEAT) {
       drawResultOverlay(ctx);
     }
   });
