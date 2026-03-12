@@ -280,6 +280,10 @@ function saveCampaignProgress() {
 let campaignFaction = 'swiss';
 let activeMission = 0;
 
+// Setters for HTML UI (three-ui.js) — Batch 7 will consolidate these
+export function setCampaignFaction(f) { campaignFaction = f; }
+export function setActiveMission(idx) { activeMission = idx; }
+
 /**
  * Draw campaign setup screen.
  */

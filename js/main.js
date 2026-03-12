@@ -38,7 +38,7 @@ import { init as initBuildings3D, sync as syncBuildings3D } from './three-buildi
 import { init as initParticles3D, sync as syncParticles3D } from './three-particles.js';
 import { init as initProjectiles3D, sync as syncProjectiles3D } from './three-projectiles.js';
 import { init as initEnv3D, sync as syncEnv3D, buildEnvironment } from './three-environment.js';
-import { initUI, sync as syncUI, showMenu, hideGameUI, showGameUI } from './three-ui.js';
+import { initUI, sync as syncUI, showMenu, hideGameUI, showGameUI, setUIStartCallback } from './three-ui.js';
 
 let isCampaignGame = false;
 
@@ -237,6 +237,7 @@ function init() {
 
   // Wire start game callback
   setOnStartGame(startGame);
+  setUIStartCallback(startGame);
 
   // Show main menu, hide game UI
   hideGameUI();
