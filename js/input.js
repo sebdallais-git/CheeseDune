@@ -1,12 +1,10 @@
 // Game/public/dune/js/input.js
-import { TILE_SIZE } from './constants.js';
 import { moveCamera, getZoom, setZoom, screenToTile, screenToWorld } from './three-camera.js';
 import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
 import { moveUnitTo, getUnitAtPosition } from './units.js';
 import { orderAttack } from './combat.js';
 import { getPlacementMode, clearPlacementMode } from './sidebar.js';
 import { placePendingBuilding } from './construction.js';
-import { canPlaceBuilding } from './buildings.js';
 import { getGameState, GameStateId } from './game-states.js';
 
 const DRAG_THRESHOLD = 8;
