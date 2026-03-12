@@ -4,7 +4,7 @@ import {
   initThreeRenderer, rebuildScene, draw as threeDraw,
   getScene, getThreeCanvas, registerSync
 } from './three-renderer.js';
-import { centerOnTile } from './three-camera.js';
+import { initCamera, centerOnTile } from './three-camera.js';
 import { startEngine, onTick, clearCallbacks, setPlaying, setDrawCallback } from './engine.js';
 import { initInput } from './input.js';
 import { initFog, resetVisibility, revealArea } from './fog.js';
@@ -79,6 +79,7 @@ function startGame(mode) {
 
   // Initialize systems with new map
   initMap(map.width, map.height, map.data);
+  initCamera(map.width, map.height);
   initFog();
   initMinimap();
 

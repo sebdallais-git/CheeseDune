@@ -8,7 +8,7 @@ import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 
 import { TILE_SIZE, Terrain } from './constants.js';
 import { getTile, getMapWidth, getMapHeight } from './map.js';
-import { initCamera3D, setRendererDom, handleResize as cameraResize, updateCameraUniforms } from './three-camera.js';
+import { initCamera, setRendererDom, handleResize as cameraResize, updateCameraUniforms } from './three-camera.js';
 
 let renderer = null;
 let scene = null;
@@ -160,7 +160,7 @@ export function initThreeRenderer() {
   scene.add(terrainGroup);
 
   // Camera
-  const camera = initCamera3D();
+  const camera = initCamera(0, 0);
   setRendererDom(renderer.domElement);
 
   // Post-processing

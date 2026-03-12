@@ -18,7 +18,7 @@ let zoomLevel = 1.0;
 let camTargetX = 0;
 let camTargetZ = 0;
 
-export function initCamera3D() {
+export function initCamera(mapWidth, mapHeight) {
   const aspect = window.innerWidth / window.innerHeight;
   camera = new THREE.OrthographicCamera(
     -frustumHalf * aspect, frustumHalf * aspect,
@@ -127,7 +127,7 @@ export function setZoom(level, cx, cy) {
   _applyPosition();
 }
 
-export function getZoomLevel() {
+export function getZoom() {
   return zoomLevel;
 }
 
