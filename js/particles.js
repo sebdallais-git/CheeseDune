@@ -1,6 +1,4 @@
-// Game/public/dune/js/particles.js
-import { TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from './constants.js';
-import { worldToScreen, getZoom } from './camera.js';
+// Game/public/dune/js/particles.js — game logic only (rendering in three-particles.js)
 
 let particles = [];
 
@@ -45,33 +43,6 @@ export function updateParticles(dt) {
       particles.splice(i, 1);
     }
   }
-}
-
-/**
- * Draw all particles.
- */
-export function drawParticles(ctx) {
-  const z = getZoom();
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-  ctx.clip();
-
-  for (const p of particles) {
-    const s = worldToScreen(p.x, p.y);
-    const sx = s.x;
-    const sy = s.y;
-    const alpha = Math.max(0, p.life / p.maxLife);
-    const size = p.size * z * alpha;
-
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = p.color;
-    ctx.fillRect(sx - size / 2, sy - size / 2, size, size);
-  }
-
-  ctx.globalAlpha = 1;
-  ctx.restore();
 }
 
 export function getParticles() {

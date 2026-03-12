@@ -1,6 +1,5 @@
-// Game/public/dune/js/projectiles.js
-import { TILE_SIZE, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, PROJECTILE_SPEED } from './constants.js';
-import { worldToScreen, getZoom } from './camera.js';
+// Game/public/dune/js/projectiles.js — game logic only (rendering in three-projectiles.js)
+import { PROJECTILE_SPEED } from './constants.js';
 
 let projectiles = [];
 
@@ -53,29 +52,6 @@ export function updateProjectiles(dt) {
       p.y += (dy / dist) * moveAmount;
     }
   }
-}
-
-/**
- * Draw all projectiles on the map viewport.
- */
-export function drawProjectiles(ctx) {
-  const z = getZoom();
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-  ctx.clip();
-
-  for (const p of projectiles) {
-    const s = worldToScreen(p.x, p.y);
-    const size = 2.5 * z;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  ctx.restore();
 }
 
 export function getProjectiles() {

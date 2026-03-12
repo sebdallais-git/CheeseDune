@@ -8,7 +8,6 @@ import { initCamera, centerOnTile } from './three-camera.js';
 import { startEngine, onTick, clearCallbacks, setPlaying, setDrawCallback } from './engine.js';
 import { initInput } from './input.js';
 import { initFog, resetVisibility, revealArea } from './fog.js';
-import { initMinimap } from './minimap.js';
 import { spawnUnit, updateUnits, getUnits, clearUnits } from './units.js';
 import { cleanSelection } from './selection.js';
 import { UnitType, TILE_SIZE, BuildingType } from './constants.js';
@@ -81,7 +80,6 @@ function startGame(mode) {
   initMap(map.width, map.height, map.data);
   initCamera(map.width, map.height);
   initFog();
-  initMinimap();
 
   // Player setup
   const playerFaction = settings.faction;
