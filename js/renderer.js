@@ -11,7 +11,7 @@ import { drawMinimap as drawMinimapImpl } from './minimap.js';
 import { getHoverTile } from './input.js';
 import { drawUnits as drawUnitsImpl, drawSelectionBox as drawSelectionBoxImpl } from './unit-renderer.js';
 import { drawBuildings as drawBuildingsImpl, drawPlacementPreview as drawPlacementPreviewImpl } from './building-renderer.js';
-import { drawSidebar as drawSidebarImpl } from './sidebar.js';
+// drawSidebar removed — sidebar is now an HTML overlay (three-ui.js)
 import { drawProjectiles as drawProjectilesImpl } from './projectiles.js';
 import { drawParticles as drawParticlesImpl } from './particles.js';
 import { getCheeseZones } from './combat.js';
@@ -180,7 +180,7 @@ export function drawCheeseZones() {
   ctx.restore();
 }
 
-export function drawSidebar() { drawSidebarImpl(ctx); }
+// drawSidebar removed — sidebar is now an HTML overlay (three-ui.js)
 export function drawMinimap() { drawMinimapImpl(ctx); }
 export function drawUnits() { drawUnitsImpl(ctx); }
 export function drawSelectionBox(x1, y1, x2, y2) { drawSelectionBoxImpl(ctx, x1, y1, x2, y2); }

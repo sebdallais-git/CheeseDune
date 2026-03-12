@@ -1,14 +1,13 @@
 // Game/public/dune/js/input.js
-import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE } from './constants.js';
-import { moveCamera, getZoom, setZoom, screenToTile, screenToWorldPos } from './camera.js';
-import { handleMinimapClick } from './minimap.js';
+import { TILE_SIZE } from './constants.js';
+import { moveCamera, getZoom, setZoom, screenToTile, screenToWorld } from './three-camera.js';
 import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
 import { moveUnitTo, getUnitAtPosition } from './units.js';
 import { orderAttack } from './combat.js';
-import { handleSidebarTap, getPlacementMode, clearPlacementMode } from './sidebar.js';
+import { getPlacementMode, clearPlacementMode } from './sidebar.js';
 import { placePendingBuilding } from './construction.js';
 import { canPlaceBuilding } from './buildings.js';
-import { getGameState, GameStateId, handleMenuInput } from './game-states.js';
+import { getGameState, GameStateId } from './game-states.js';
 
 const DRAG_THRESHOLD = 8;
 
@@ -30,7 +29,6 @@ let pinchStartDist = 0;
 let pinchStartZoom = 1;
 
 let canvasEl = null;
-let canvasRect = null;
 
 let longPressTimer = null;
 const LONG_PRESS_MS = 300;
@@ -46,15 +44,10 @@ let lastTapTime = 0;
 let lastTapWorldX = 0;
 let lastTapWorldY = 0;
 const DOUBLE_TAP_MS = 400;
-const DOUBLE_TAP_DIST = 30; // world pixels
+const DOUBLE_TAP_DIST = 30; // world units
 
 export function initInput(canvas) {
   canvasEl = canvas;
-  canvasRect = canvas.getBoundingClientRect();
-
-  window.addEventListener('resize', () => {
-    canvasRect = canvas.getBoundingClientRect();
-  });
 
   canvas.addEventListener('pointerdown', onPointerDown);
   canvas.addEventListener('pointermove', onPointerMove);
@@ -71,22 +64,12 @@ function getPinchData() {
   const dy = pts[1].y - pts[0].y;
   const dist = Math.sqrt(dx * dx + dy * dy);
   const midX = (pts[0].x + pts[1].x) / 2;
-  const midY = (pts[0].y + pts[1].y) / 2 - TOP_BAR_HEIGHT; // viewport-relative
+  const midY = (pts[0].y + pts[1].y) / 2;
   return { dist, midX, midY };
 }
 
 function canvasCoords(e) {
-  canvasRect = canvasEl.getBoundingClientRect();
-  const scaleX = CANVAS_WIDTH / canvasRect.width;
-  const scaleY = CANVAS_HEIGHT / canvasRect.height;
-  return {
-    x: (e.clientX - canvasRect.left) * scaleX,
-    y: (e.clientY - canvasRect.top) * scaleY,
-  };
-}
-
-function inViewport(x, y) {
-  return x >= 0 && x < VIEWPORT_WIDTH && y >= TOP_BAR_HEIGHT && y < TOP_BAR_HEIGHT + VIEWPORT_HEIGHT;
+  return { x: e.clientX, y: e.clientY };
 }
 
 function onPointerDown(e) {
@@ -100,21 +83,19 @@ function onPointerDown(e) {
 
   if (pointers.size === 1) {
     state = GestureState.PENDING;
-    // Start long-press timer for box select (only in viewport)
-    if (inViewport(pos.x, pos.y)) {
-      const startPos = { ...pos };
-      longPressTimer = setTimeout(() => {
-        if (state === GestureState.PENDING) {
-          state = GestureState.BOX_SELECTING;
-          isBoxSelecting = true;
-          const w = screenToWorldPos(startPos.x, startPos.y);
-          boxStartWorldX = w.x;
-          boxStartWorldY = w.y;
-          boxEndWorldX = w.x;
-          boxEndWorldY = w.y;
-        }
-      }, LONG_PRESS_MS);
-    }
+    // Start long-press timer for box select
+    const startPos = { ...pos };
+    longPressTimer = setTimeout(() => {
+      if (state === GestureState.PENDING) {
+        state = GestureState.BOX_SELECTING;
+        isBoxSelecting = true;
+        const w = screenToWorld(startPos.x, startPos.y);
+        boxStartWorldX = w.x;
+        boxStartWorldY = w.z;  // world Z maps to game Y
+        boxEndWorldX = w.x;
+        boxEndWorldY = w.z;
+      }
+    }, LONG_PRESS_MS);
   } else if (pointers.size >= 2) {
     // Cancel any box-select in progress
     clearTimeout(longPressTimer);
@@ -162,8 +143,12 @@ function onPointerMove(e) {
   }
 
   if (state === GestureState.DRAGGING && pointers.size === 1) {
-    const z = getZoom();
-    moveCamera((pos.x - prevX) / z, (pos.y - prevY) / z);
+    // Convert screen drag to world XZ delta
+    const worldBefore = screenToWorld(prevX, prevY);
+    const worldAfter = screenToWorld(pos.x, pos.y);
+    if (worldBefore && worldAfter) {
+      moveCamera(worldBefore.x - worldAfter.x, worldBefore.z - worldAfter.z);
+    }
   }
 
   if (state === GestureState.PINCHING && pointers.size === 2) {
@@ -176,9 +161,9 @@ function onPointerMove(e) {
   }
 
   if (state === GestureState.BOX_SELECTING && pointers.size === 1) {
-    const w = screenToWorldPos(pos.x, pos.y);
+    const w = screenToWorld(pos.x, pos.y);
     boxEndWorldX = w.x;
-    boxEndWorldY = w.y;
+    boxEndWorldY = w.z;  // world Z maps to game Y
   }
 }
 
@@ -199,62 +184,57 @@ function onPointerUp(e) {
       // Menu state input handling
       const gameState = getGameState();
       if (gameState !== GameStateId.PLAYING) {
-        handleMenuInput(ptr.startX, ptr.startY);
+        // Do nothing — HTML menus handle their own clicks
       } else {
-        // Compute tile for tap position (used by placement and tap logic below)
+        // Compute tile for tap position
         const tile = screenToTile(ptr.startX, ptr.startY);
-        // Check sidebar first
-        if (handleSidebarTap(ptr.startX, ptr.startY)) {
-          // Sidebar handled the tap
-        } else if (getPlacementMode() && tile) {
+        if (getPlacementMode() && tile) {
           // In building placement mode — try to place
           const placed = placePendingBuilding('player', tile.tileX, tile.tileY);
           if (placed) clearPlacementMode();
-        } else if (!handleMinimapClick(ptr.startX, ptr.startY)) {
-          // Convert screen tap to exact world coordinates (isometric)
-          if (tile) {
-            const tapWorld = screenToWorldPos(ptr.startX, ptr.startY);
-            const worldX = tapWorld.x;
-            const worldY = tapWorld.y;
+        } else if (tile) {
+          // Convert screen tap to world coordinates
+          const tapWorld = screenToWorld(ptr.startX, ptr.startY);
+          const worldX = tapWorld.x;
+          const worldY = tapWorld.z;  // world Z maps to game Y
 
-            const now = performance.now();
-            const timeSinceLastTap = now - lastTapTime;
-            const distFromLastTap = Math.sqrt(
-              (worldX - lastTapWorldX) ** 2 + (worldY - lastTapWorldY) ** 2
-            );
+          const now = performance.now();
+          const timeSinceLastTap = now - lastTapTime;
+          const distFromLastTap = Math.sqrt(
+            (worldX - lastTapWorldX) ** 2 + (worldY - lastTapWorldY) ** 2
+          );
 
-            // Check for double-tap
-            if (timeSinceLastTap < DOUBLE_TAP_MS && distFromLastTap < DOUBLE_TAP_DIST) {
-              const unit = getUnitAtPosition(worldX, worldY, 20);
-              if (unit && unit.owner === 'player') {
-                selectAllOfType(unit);
-              }
-              lastTapTime = 0;
-              lastTapWorldX = 0;
-              lastTapWorldY = 0;
-            } else {
-              // Single tap
-              const tappedUnit = getUnitAtPosition(worldX, worldY, 20);
-
-              if (tappedUnit && tappedUnit.owner === 'player') {
-                selectAtPosition(worldX, worldY);
-              } else if (tappedUnit && tappedUnit.owner !== 'player' && hasSelection()) {
-                const selected = getSelectedUnits();
-                for (const u of selected) {
-                  orderAttack(u, tappedUnit);
-                }
-              } else if (!tappedUnit && hasSelection()) {
-                const selected = getSelectedUnits();
-                for (const u of selected) {
-                  moveUnitTo(u, tile.tileX, tile.tileY);
-                }
-              } else {
-                deselectAll();
-              }
-              lastTapTime = now;
-              lastTapWorldX = worldX;
-              lastTapWorldY = worldY;
+          // Check for double-tap
+          if (timeSinceLastTap < DOUBLE_TAP_MS && distFromLastTap < DOUBLE_TAP_DIST) {
+            const unit = getUnitAtPosition(worldX, worldY, 20);
+            if (unit && unit.owner === 'player') {
+              selectAllOfType(unit);
             }
+            lastTapTime = 0;
+            lastTapWorldX = 0;
+            lastTapWorldY = 0;
+          } else {
+            // Single tap
+            const tappedUnit = getUnitAtPosition(worldX, worldY, 20);
+
+            if (tappedUnit && tappedUnit.owner === 'player') {
+              selectAtPosition(worldX, worldY);
+            } else if (tappedUnit && tappedUnit.owner !== 'player' && hasSelection()) {
+              const selected = getSelectedUnits();
+              for (const u of selected) {
+                orderAttack(u, tappedUnit);
+              }
+            } else if (!tappedUnit && hasSelection()) {
+              const selected = getSelectedUnits();
+              for (const u of selected) {
+                moveUnitTo(u, tile.tileX, tile.tileY);
+              }
+            } else {
+              deselectAll();
+            }
+            lastTapTime = now;
+            lastTapWorldX = worldX;
+            lastTapWorldY = worldY;
           }
         }
       }
