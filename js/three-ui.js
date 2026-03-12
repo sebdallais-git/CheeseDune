@@ -6,7 +6,8 @@ import {
   getSkirmishSettings, setSkirmishSettings,
   setOnStartGame, getCampaignMission,
   getGameTime, getOwnerFaction,
-  setCampaignFaction, setActiveMission
+  setCampaignFaction, setActiveMission, getActiveMission,
+  getIsCampaignGame, CAMPAIGN_MISSIONS as CAMPAIGN_MISSION_DATA
 } from './game-states.js';
 import { getCheese, getStorageCapacity, canAfford, spendCheese } from './economy.js';
 import { getPowerStatus } from './power.js';
@@ -29,6 +30,7 @@ import {
   UnitType, UnitStats,
   FACTION_SUPER_UNIT
 } from './constants.js';
+import { MISSION_STORIES, VICTORY_STORIES, DEFEAT_STORIES } from './campaign-stories.js';
 
 // ---- Campaign data (hardcoded, matches game-states.js) ----
 
@@ -39,6 +41,9 @@ const CAMPAIGN_MISSIONS = [
   { name: 'Three-Front War', desc: 'Surrounded on all sides. Survive and conquer.' },
   { name: 'The Grand Melee', desc: 'A massive battle for alpine supremacy.' },
 ];
+
+// Story data imported from campaign-stories.js
+// MISSION_STORIES, VICTORY_STORIES, DEFEAT_STORIES are faction-keyed objects
 
 // Sidebar building order
 const SIDEBAR_BUILDINGS = [
@@ -192,9 +197,19 @@ export function initUI() {
     campaignMissions: document.getElementById('campaign-missions'),
     btnStartCampaign: document.getElementById('btn-start-campaign'),
     btnBackCampaign: document.getElementById('btn-back-campaign'),
+    // Mission briefing
+    menuBriefing: document.getElementById('menu-briefing'),
+    briefingTitle: document.getElementById('briefing-title'),
+    briefingSubtitle: document.getElementById('briefing-subtitle'),
+    briefingIllustration: document.getElementById('briefing-illustration'),
+    briefingText: document.getElementById('briefing-text'),
+    btnBeginBattle: document.getElementById('btn-begin-battle'),
+    btnBackBriefing: document.getElementById('btn-back-briefing'),
     // Result
     resultTitle: document.getElementById('result-title'),
     resultTime: document.getElementById('result-time'),
+    resultStory: document.getElementById('result-story'),
+    btnNextMission: document.getElementById('btn-next-mission'),
     btnReturnMenu: document.getElementById('btn-return-menu'),
     // Game UI
     resourceBar: document.getElementById('resource-bar'),
@@ -262,7 +277,7 @@ export function initUI() {
 
   if (dom.btnStartCampaign) {
     dom.btnStartCampaign.addEventListener('click', () => {
-      onStartGameCb && onStartGameCb('campaign');
+      showMenu(GameStateId.MISSION_BRIEFING);
     });
   }
   if (dom.btnBackCampaign) {
@@ -271,7 +286,33 @@ export function initUI() {
     });
   }
 
+  // ---- Mission briefing ----
+  if (dom.btnBeginBattle) {
+    dom.btnBeginBattle.addEventListener('click', () => {
+      onStartGameCb && onStartGameCb('campaign');
+    });
+  }
+  if (dom.btnBackBriefing) {
+    dom.btnBackBriefing.addEventListener('click', () => {
+      showMenu(GameStateId.CAMPAIGN_SETUP);
+    });
+  }
+
   // ---- Result overlay ----
+  if (dom.btnNextMission) {
+    dom.btnNextMission.addEventListener('click', () => {
+      const nextIdx = getActiveMission() + 1;
+      if (nextIdx < CAMPAIGN_MISSION_DATA.length) {
+        activeMission = nextIdx;
+        setActiveMission(nextIdx);
+        hideGameUI();
+        showMenu(GameStateId.MISSION_BRIEFING);
+      } else {
+        hideGameUI();
+        showMenu(GameStateId.MAIN_MENU);
+      }
+    });
+  }
   if (dom.btnReturnMenu) {
     dom.btnReturnMenu.addEventListener('click', () => {
       hideGameUI();
@@ -486,6 +527,45 @@ function refreshMissionList() {
 }
 
 // ================================================================
+// Mission Briefing Population
+// ================================================================
+
+function populateBriefing(missionIndex) {
+  const faction = campaignFaction || 'swiss';
+  const stories = MISSION_STORIES[faction] || MISSION_STORIES.swiss;
+  const story = stories[missionIndex] || stories[0];
+
+  if (dom.briefingTitle) dom.briefingTitle.textContent = story.title;
+  if (dom.briefingSubtitle) dom.briefingSubtitle.textContent = story.subtitle;
+
+  // Build illustration from trusted SVG string (hardcoded story data, not user input)
+  if (dom.briefingIllustration) {
+    while (dom.briefingIllustration.firstChild) {
+      dom.briefingIllustration.removeChild(dom.briefingIllustration.firstChild);
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(story.svg, 'image/svg+xml');
+    const svgEl = doc.documentElement;
+    if (svgEl && svgEl.tagName === 'svg') {
+      dom.briefingIllustration.appendChild(document.importNode(svgEl, true));
+    }
+  }
+
+  // Build story text from trusted HTML (hardcoded story data, not user input)
+  if (dom.briefingText) {
+    while (dom.briefingText.firstChild) {
+      dom.briefingText.removeChild(dom.briefingText.firstChild);
+    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString('<div>' + story.text + '</div>', 'text/html');
+    const children = doc.body.firstChild.childNodes;
+    for (let i = 0; i < children.length; i++) {
+      dom.briefingText.appendChild(document.importNode(children[i], true));
+    }
+  }
+}
+
+// ================================================================
 // showMenu — Show specific menu screen, hide others
 // ================================================================
 
@@ -501,17 +581,46 @@ export function showMenu(stateId) {
   } else if (stateId === GameStateId.CAMPAIGN_SETUP) {
     if (dom.menuCampaign) dom.menuCampaign.classList.remove('hidden');
     refreshMissionList();
+  } else if (stateId === GameStateId.MISSION_BRIEFING) {
+    if (dom.menuBriefing) {
+      dom.menuBriefing.classList.remove('hidden');
+      populateBriefing(activeMission);
+    }
   } else if (stateId === GameStateId.VICTORY || stateId === GameStateId.DEFEAT) {
     if (dom.menuResult) {
       dom.menuResult.classList.remove('hidden');
+      const isVictory = stateId === GameStateId.VICTORY;
+      const isCampaign = getIsCampaignGame();
+      const missionIdx = getActiveMission();
 
       if (dom.resultTitle) {
-        dom.resultTitle.textContent = stateId === GameStateId.VICTORY ? 'VICTORY' : 'DEFEAT';
-        dom.resultTitle.className = 'result-title ' + (stateId === GameStateId.VICTORY ? 'victory' : 'defeat');
+        dom.resultTitle.textContent = isVictory ? 'VICTORY!' : 'DEFEAT';
+        dom.resultTitle.className = 'result-title ' + (isVictory ? 'victory' : 'defeat');
       }
 
       if (dom.resultTime) {
         dom.resultTime.textContent = 'Time: ' + formatTime(getGameTime());
+      }
+
+      // Show campaign story text
+      if (dom.resultStory) {
+        if (isCampaign) {
+          const faction = campaignFaction || 'swiss';
+          const storyBank = isVictory ? VICTORY_STORIES : DEFEAT_STORIES;
+          const stories = storyBank[faction] || storyBank.swiss;
+          const storyText = stories[missionIdx] || '';
+          dom.resultStory.textContent = storyText;
+          dom.resultStory.style.display = '';
+        } else {
+          dom.resultStory.textContent = '';
+          dom.resultStory.style.display = 'none';
+        }
+      }
+
+      // Show "NEXT MISSION" for campaign victories (if not last mission)
+      if (dom.btnNextMission) {
+        const showNext = isCampaign && isVictory && missionIdx < CAMPAIGN_MISSION_DATA.length - 1;
+        dom.btnNextMission.style.display = showNext ? '' : 'none';
       }
     }
   }
@@ -852,6 +961,9 @@ function updateSidebarButtonStates() {
 
     if (currentTypes.length !== producible.length ||
         currentTypes.some((t, i) => t !== producible[i])) {
+      while (dom.sidebarButtons.firstChild) {
+        dom.sidebarButtons.removeChild(dom.sidebarButtons.firstChild);
+      }
       populateUnitsTab();
     } else {
       buttons.forEach(btn => {

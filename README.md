@@ -345,4 +345,8 @@ dune/
 
 [![Star This](https://img.shields.io/badge/If%20You%20Enjoyed%20This-Star%20It-ffd700?style=for-the-badge)](#)
 
+<br>
+
+*the Dune abides* :sunglasses:
+
 </div>

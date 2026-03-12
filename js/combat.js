@@ -3,8 +3,10 @@ import {
   TILE_SIZE, UnitType, Terrain, BuildingStats,
   DAMAGE_ROCKET_VS_VEHICLE, DAMAGE_ROCKET_VS_INFANTRY,
   DAMAGE_FOREST_COVER, SPLASH_RADIUS,
-  CHEESE_ZONE_DURATION, CHEESE_ZONE_DPS, DRUNK_DURATION
+  CHEESE_ZONE_DURATION, CHEESE_ZONE_DPS, DRUNK_DURATION,
+  AI_SETTINGS
 } from './constants.js';
+import { getActiveDifficulty } from './game-states.js';
 import {
   getUnits, removeUnit, getEnemiesInRange, getNearestEnemy, moveUnitTo, stopUnit
 } from './units.js';
@@ -35,6 +37,12 @@ export function calculateDamage(attacker, target) {
   const targetTileY = Math.floor(target.y / TILE_SIZE);
   if (getTile(targetTileX, targetTileY) === Terrain.FOREST) {
     damage *= DAMAGE_FOREST_COVER;
+  }
+
+  // AI damage penalty on easy difficulty
+  if (attacker.owner !== 'player') {
+    const diff = getActiveDifficulty();
+    damage *= AI_SETTINGS[diff].damageMult;
   }
 
   return Math.round(damage);

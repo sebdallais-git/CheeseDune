@@ -363,6 +363,68 @@
       margin-top: 4px;
     }
 
+    /* --- Mission briefing screen --- */
+    #menu-briefing {
+      overflow-y: auto;
+      padding: 20px;
+      gap: 0;
+    }
+    #menu-briefing .briefing-header {
+      font-family: monospace;
+      font-size: 11px;
+      color: #cc4444;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    #menu-briefing .briefing-title {
+      font-family: monospace;
+      font-size: 28px;
+      font-weight: bold;
+      color: #ffcc00;
+      margin-bottom: 2px;
+    }
+    #menu-briefing .briefing-subtitle {
+      font-family: monospace;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+    #menu-briefing .briefing-illustration {
+      width: 440px;
+      max-width: 90vw;
+      height: 260px;
+      background: rgba(20, 20, 35, 0.9);
+      border: 2px solid rgba(255, 204, 0, 0.15);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    #menu-briefing .briefing-illustration svg {
+      width: 100%;
+      height: 100%;
+    }
+    #menu-briefing .briefing-text {
+      width: 440px;
+      max-width: 90vw;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #bbb;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    #menu-briefing .briefing-text p {
+      margin-bottom: 10px;
+    }
+    #menu-briefing .briefing-text .intel {
+      color: #ff8844;
+      font-weight: bold;
+    }
+
     /* Result overlay (victory/defeat) */
     .result-overlay {
       position: absolute;
@@ -466,10 +528,23 @@
       <button class="back-btn" id="btn-back-campaign">BACK</button>
     </div>
 
+    <!-- Mission briefing screen -->
+    <div id="menu-briefing" class="menu-screen interactive hidden">
+      <div class="briefing-header" id="briefing-header">CLASSIFIED BRIEFING</div>
+      <div class="briefing-title" id="briefing-title"></div>
+      <div class="briefing-subtitle" id="briefing-subtitle"></div>
+      <div class="briefing-illustration" id="briefing-illustration"></div>
+      <div class="briefing-text" id="briefing-text"></div>
+      <button class="start-btn" id="btn-begin-battle">BEGIN BATTLE</button>
+      <button class="back-btn" id="btn-back-briefing">BACK</button>
+    </div>
+
     <!-- Result overlay -->
     <div id="menu-result" class="result-overlay interactive hidden">
       <div id="result-title" class="result-title"></div>
       <div id="result-time" class="result-time"></div>
+      <div id="result-story" class="briefing-text" style="width:440px;max-width:90vw;margin:10px 0 20px;text-align:center;"></div>
+      <button class="start-btn" id="btn-next-mission" style="display:none;">NEXT MISSION</button>
       <button class="menu-btn" id="btn-return-menu">RETURN TO MENU</button>
     </div>
   </div>

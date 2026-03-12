@@ -25,7 +25,7 @@ export class AIPlayer {
     this.difficulty = difficulty;
     this.settings = AI_SETTINGS[difficulty];
     this.state = AIState.BUILD_POWER;
-    this.decisionTimer = 2.0;
+    this.decisionTimer = difficulty === 'easy' ? 8.0 : 2.0; // easy: long initial delay
     this.attackTimer = 0;
     this.trainTimer = 0;
   }
@@ -34,7 +34,7 @@ export class AIPlayer {
     this.decisionTimer -= dt;
     this.trainTimer -= dt;
     if (this.decisionTimer > 0) return;
-    this.decisionTimer = 1.0;
+    this.decisionTimer = this.difficulty === 'easy' ? 5.0 : 1.0; // easy: very slow decisions
 
     const myBuildings = getPlayerBuildings(this.owner);
     const allUnits = getUnits();
@@ -67,7 +67,7 @@ export class AIPlayer {
 
       case AIState.BUILD_ECONOMY: {
         const hasRef = myBuildings.some(b => b.type === BuildingType.REFINERY);
-        const hTarget = this.difficulty === 'easy' ? 2 : 3;
+        const hTarget = this.difficulty === 'easy' ? 1 : 3;
 
         if (!hasRef) {
           this._tryBuild(BuildingType.REFINERY, myBuildings);
@@ -98,7 +98,7 @@ export class AIPlayer {
           this._tryBuild(BuildingType.POWER_PLANT, myBuildings);
         }
 
-        const hTarget2 = this.difficulty === 'easy' ? 2 : 3;
+        const hTarget2 = this.difficulty === 'easy' ? 1 : 3;
         if (myHarvesters.length < hTarget2) {
           this._trainUnit(UnitType.HARVESTER, myBuildings);
         }
@@ -185,7 +185,8 @@ export class AIPlayer {
     } else if (tier >= 2 && hasBuilding(BuildingType.LIGHT_FACTORY, this.owner)) {
       unitType = myMilitary.length % 2 === 0 ? UnitType.LIGHT_VEHICLE : UnitType.HEAVY_INFANTRY;
     } else {
-      unitType = myMilitary.length % 2 === 0 ? UnitType.LIGHT_INFANTRY : UnitType.HEAVY_INFANTRY;
+      // Easy: only light infantry (no mix with heavy)
+      unitType = UnitType.LIGHT_INFANTRY;
     }
 
     this._trainUnit(unitType, myBuildings);
@@ -197,12 +198,21 @@ export class AIPlayer {
     const playerBuildings = getPlayerBuildings('player');
     if (playerBuildings.length === 0) return;
 
+    // Easy AI only sends a fraction of its army (attackFraction)
+    const fraction = this.settings.attackFraction || 1.0;
+    let attackForce = myMilitary;
+    if (fraction < 1.0) {
+      const count = Math.max(2, Math.floor(myMilitary.length * fraction));
+      attackForce = myMilitary.slice(0, count);
+    }
+
     let target;
     if (this.difficulty === 'hard') {
       target = playerBuildings.find(b => b.type === BuildingType.REFINERY) || playerBuildings[0];
     } else {
-      const avgX = myMilitary.reduce((s, u) => s + u.x, 0) / myMilitary.length;
-      const avgY = myMilitary.reduce((s, u) => s + u.y, 0) / myMilitary.length;
+      // Easy/medium: just attack nearest building (not smart targeting)
+      const avgX = attackForce.reduce((s, u) => s + u.x, 0) / attackForce.length;
+      const avgY = attackForce.reduce((s, u) => s + u.y, 0) / attackForce.length;
       let nearest = playerBuildings[0];
       let nearDist = Infinity;
       for (const b of playerBuildings) {
@@ -216,7 +226,7 @@ export class AIPlayer {
 
     const tx = target.tileX + Math.floor(target.footprint[0] / 2);
     const ty = target.tileY + Math.floor(target.footprint[1] / 2);
-    for (const u of myMilitary) {
+    for (const u of attackForce) {
       if (!u.moving && !u.target) {
         moveUnitTo(u, tx, ty);
       }

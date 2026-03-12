@@ -5,6 +5,7 @@ export const GameStateId = {
   MAIN_MENU: 'MAIN_MENU',
   SKIRMISH_SETUP: 'SKIRMISH_SETUP',
   CAMPAIGN_SETUP: 'CAMPAIGN_SETUP',
+  MISSION_BRIEFING: 'MISSION_BRIEFING',
   PLAYING: 'PLAYING',
   VICTORY: 'VICTORY',
   DEFEAT: 'DEFEAT',
@@ -22,6 +23,8 @@ let skirmishSettings = {
 
 let gameTime = 0;
 let resultData = null;
+let activeDifficulty = 'medium';
+let campaignGame = false;
 
 // Owner -> faction registry
 const ownerFactions = {};
@@ -39,6 +42,10 @@ export function addGameTime(dt) { gameTime += dt; }
 export function resetGameTime() { gameTime = 0; }
 export function getResultData() { return resultData; }
 export function setResultData(data) { resultData = data; }
+export function getActiveDifficulty() { return activeDifficulty; }
+export function setActiveDifficulty(d) { activeDifficulty = d; }
+export function getIsCampaignGame() { return campaignGame; }
+export function setIsCampaignGame(v) { campaignGame = v; }
 
 export function registerOwnerFaction(owner, faction) {
   ownerFactions[owner] = faction;

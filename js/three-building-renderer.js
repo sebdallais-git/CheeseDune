@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { getBuildings } from './buildings.js';
 import { BuildingStats, BuildingType, TILE_SIZE, FogState } from './constants.js';
+// NOTE: BuildingType.LAB ('lab') will be added to constants.js separately
 import { getFogState } from './fog.js';
 import { getOwnerFaction } from './game-states.js';
 
@@ -166,6 +167,15 @@ function createBuildingMesh(building) {
     addHalfTimberBeams(group, width, depth, height, mats.timber);
   }
 
+  // --- Faction-specific visual enhancements ---
+  if (faction === 'swiss') {
+    addSwissEnhancements(group, width, depth, height, fw, fh);
+  } else if (faction === 'french') {
+    addFrenchEnhancements(group, width, depth, height, fw, fh, style);
+  } else if (faction === 'german') {
+    addGermanEnhancements(group, width, depth, height, building.type, mats.timber);
+  }
+
   // --- Roof ---
   addRoof(group, width, depth, height, style, mats.roof, fw, fh);
 
@@ -179,7 +189,7 @@ function createBuildingMesh(building) {
   addChimney(group, width, depth, height, mats.chimney, faction);
 
   // --- Type-specific detail ---
-  addTypeDetail(group, building.type, width, depth, height, fw);
+  addTypeDetail(group, building.type, width, depth, height, fw, faction);
 
   // --- Flag (for animation) ---
   addFlag(group, width, depth, height, faction);
@@ -399,6 +409,274 @@ function addHalfTimberBeams(group, width, depth, height, timberMat) {
   }
 }
 
+// --- Swiss faction enhancements: flower boxes, shutters, balcony railing ---
+
+function addSwissEnhancements(group, width, depth, height, fw, fh) {
+  const windowSize = Math.min(2.5, height * 0.2);
+  const windowsPerSide = Math.max(1, fw);
+  const windowSpacing = (width * 0.7) / windowsPerSide;
+  const windowY = height * 0.6;
+
+  // --- Flower boxes under front & back windows ---
+  const flowerBoxGeomKey = `flowerBox_${windowSize.toFixed(1)}`;
+  const flowerBoxGeom = getOrCreateGeometry(flowerBoxGeomKey, () =>
+    new THREE.BoxGeometry(windowSize * 1.1, 0.6, 0.8)
+  );
+  const flowerColors = [0xcc3344, 0xff6699]; // red and pink
+
+  for (let i = 0; i < windowsPerSide; i++) {
+    const offsetX = -width * 0.35 + windowSpacing * (i + 0.5);
+    const flowerColor = flowerColors[i % flowerColors.length];
+    const flowerMat = getDetailMaterial(flowerColor);
+
+    // Front flower box
+    const fbFront = new THREE.Mesh(flowerBoxGeom, flowerMat);
+    fbFront.position.set(offsetX, windowY - windowSize * 0.6, -depth * 0.451 + 0.4);
+    group.add(fbFront);
+
+    // Back flower box
+    const fbBack = new THREE.Mesh(flowerBoxGeom, flowerMat);
+    fbBack.position.set(offsetX, windowY - windowSize * 0.6, depth * 0.451 - 0.4);
+    group.add(fbBack);
+  }
+
+  // --- Window shutters (thin brown boxes on either side of front windows) ---
+  const shutterGeomKey = `shutter_${windowSize.toFixed(1)}`;
+  const shutterGeom = getOrCreateGeometry(shutterGeomKey, () =>
+    new THREE.BoxGeometry(windowSize * 0.25, windowSize * 1.1, 0.2)
+  );
+  const shutterMat = getDetailMaterial(0x5a3a1a);
+
+  for (let i = 0; i < windowsPerSide; i++) {
+    const offsetX = -width * 0.35 + windowSpacing * (i + 0.5);
+
+    // Left shutter (front)
+    const sL = new THREE.Mesh(shutterGeom, shutterMat);
+    sL.position.set(offsetX - windowSize * 0.65, windowY, -depth * 0.455);
+    group.add(sL);
+
+    // Right shutter (front)
+    const sR = new THREE.Mesh(shutterGeom, shutterMat);
+    sR.position.set(offsetX + windowSize * 0.65, windowY, -depth * 0.455);
+    group.add(sR);
+
+    // Left shutter (back)
+    const sLb = new THREE.Mesh(shutterGeom, shutterMat);
+    sLb.position.set(offsetX - windowSize * 0.65, windowY, depth * 0.455);
+    group.add(sLb);
+
+    // Right shutter (back)
+    const sRb = new THREE.Mesh(shutterGeom, shutterMat);
+    sRb.position.set(offsetX + windowSize * 0.65, windowY, depth * 0.455);
+    group.add(sRb);
+  }
+
+  // --- Balcony railing on front face ---
+  const railHeight = 1.5;
+  const railY = height * 0.35;
+  const railMat = getDetailMaterial(0x5a3a1a);
+
+  // Top rail (horizontal bar)
+  const topRailGeomKey = `swissTopRail_${width.toFixed(0)}`;
+  const topRailGeom = getOrCreateGeometry(topRailGeomKey, () =>
+    new THREE.BoxGeometry(width * 0.7, 0.2, 0.2)
+  );
+  const topRail = new THREE.Mesh(topRailGeom, railMat);
+  topRail.position.set(0, railY + railHeight, -depth * 0.46 - 1.0);
+  group.add(topRail);
+
+  // Bottom rail
+  const bottomRail = new THREE.Mesh(topRailGeom, railMat);
+  bottomRail.position.set(0, railY, -depth * 0.46 - 1.0);
+  group.add(bottomRail);
+
+  // Vertical posts for the railing
+  const postGeomKey = `swissRailPost_${railHeight.toFixed(1)}`;
+  const postGeom = getOrCreateGeometry(postGeomKey, () =>
+    new THREE.BoxGeometry(0.2, railHeight, 0.2)
+  );
+  const postCount = Math.max(3, fw + 2);
+  const postSpacing = (width * 0.7) / (postCount - 1);
+  for (let i = 0; i < postCount; i++) {
+    const px = -width * 0.35 + postSpacing * i;
+    const post = new THREE.Mesh(postGeom, railMat);
+    post.position.set(px, railY + railHeight / 2, -depth * 0.46 - 1.0);
+    group.add(post);
+  }
+
+  // Balcony floor
+  const balconyFloorGeomKey = `swissBalconyFloor_${width.toFixed(0)}`;
+  const balconyFloorGeom = getOrCreateGeometry(balconyFloorGeomKey, () =>
+    new THREE.BoxGeometry(width * 0.7, 0.15, 1.2)
+  );
+  const balconyFloor = new THREE.Mesh(balconyFloorGeom, railMat);
+  balconyFloor.position.set(0, railY - 0.1, -depth * 0.46 - 0.5);
+  group.add(balconyFloor);
+}
+
+// --- French faction enhancements: mansard caps, awnings, corner trim ---
+
+function addFrenchEnhancements(group, width, depth, height, fw, fh, style) {
+  const windowSize = Math.min(2.5, height * 0.2);
+  const windowsPerSide = Math.max(1, fw);
+  const windowSpacing = (width * 0.7) / windowsPerSide;
+  const windowY = height * 0.6;
+
+  // --- Mansard-style roof caps (decorative horizontal band at roof base) ---
+  const mansardBandGeomKey = `mansardBand_${width.toFixed(0)}_${depth.toFixed(0)}`;
+  const mansardBandGeom = getOrCreateGeometry(mansardBandGeomKey, () =>
+    new THREE.BoxGeometry(width * 0.97, 1.0, depth * 0.97)
+  );
+  const mansardMat = getDetailMaterial(0x1a2a4a); // darker blue/slate trim
+  const mansardBand = new THREE.Mesh(mansardBandGeom, mansardMat);
+  mansardBand.position.set(0, height + 0.5, 0);
+  group.add(mansardBand);
+
+  // Secondary thinner band slightly above (decorative molding)
+  const mansardMoldingGeomKey = `mansardMolding_${width.toFixed(0)}_${depth.toFixed(0)}`;
+  const mansardMoldingGeom = getOrCreateGeometry(mansardMoldingGeomKey, () =>
+    new THREE.BoxGeometry(width * 0.93, 0.4, depth * 0.93)
+  );
+  const moldingMat = getDetailMaterial(0xd8c8a8); // cream-colored trim
+  const molding = new THREE.Mesh(mansardMoldingGeom, moldingMat);
+  molding.position.set(0, height + 1.2, 0);
+  group.add(molding);
+
+  // --- Awnings over front windows (angled thin planes) ---
+  const awningGeomKey = `awning_${windowSize.toFixed(1)}`;
+  const awningGeom = getOrCreateGeometry(awningGeomKey, () =>
+    new THREE.PlaneGeometry(windowSize * 1.3, windowSize * 0.6)
+  );
+  const awningMat = getDetailMaterial(0x884422); // dark canvas brown
+
+  for (let i = 0; i < windowsPerSide; i++) {
+    const offsetX = -width * 0.35 + windowSpacing * (i + 0.5);
+
+    // Front awning
+    const awF = new THREE.Mesh(awningGeom, awningMat);
+    awF.position.set(offsetX, windowY + windowSize * 0.55, -depth * 0.46 - 0.3);
+    awF.rotation.x = Math.PI * 0.2; // tilted outward
+    group.add(awF);
+
+    // Back awning
+    const awB = new THREE.Mesh(awningGeom, awningMat);
+    awB.position.set(offsetX, windowY + windowSize * 0.55, depth * 0.46 + 0.3);
+    awB.rotation.x = -Math.PI * 0.2;
+    awB.rotation.y = Math.PI;
+    group.add(awB);
+  }
+
+  // --- Decorative corner trim (thin vertical boxes at building corners) ---
+  const cornerTrimGeomKey = `frenchCornerTrim_${height.toFixed(0)}`;
+  const cornerTrimGeom = getOrCreateGeometry(cornerTrimGeomKey, () =>
+    new THREE.BoxGeometry(0.6, height * 1.02, 0.6)
+  );
+  const trimMat = getDetailMaterial(0xc0b090); // light stone trim
+
+  const corners = [
+    [-width * 0.45, -depth * 0.45],
+    [ width * 0.45, -depth * 0.45],
+    [-width * 0.45,  depth * 0.45],
+    [ width * 0.45,  depth * 0.45],
+  ];
+
+  for (const [cx, cz] of corners) {
+    const trim = new THREE.Mesh(cornerTrimGeom, trimMat);
+    trim.position.set(cx, height / 2, cz);
+    group.add(trim);
+  }
+}
+
+// --- German faction enhancements: diagonal cross-beams, bench, iron trim ---
+
+function addGermanEnhancements(group, width, depth, height, buildingType, timberMat) {
+  // --- Diagonal cross-beams (X pattern) on front and back walls ---
+  // Place X patterns between the horizontal beams (at 1/3 and 2/3 height)
+  const sectionHeight = height / 3;
+  const wallHalfWidth = width * 0.45;
+  const diagonalLen = Math.sqrt(
+    (wallHalfWidth * 2) * (wallHalfWidth * 2) + sectionHeight * sectionHeight
+  ) * 0.5;
+  const diagonalAngle = Math.atan2(sectionHeight, wallHalfWidth * 2);
+
+  const crossBeamGeomKey = `germanCrossBeam_${diagonalLen.toFixed(1)}`;
+  const crossBeamGeom = getOrCreateGeometry(crossBeamGeomKey, () =>
+    new THREE.BoxGeometry(diagonalLen, 0.4, 0.4)
+  );
+
+  // Place X beams in the lower and middle third of the front & back faces
+  for (let section = 0; section < 2; section++) {
+    const sectionBaseY = height * (section / 3) + sectionHeight / 2;
+    const faces = [-depth * 0.465, depth * 0.465]; // front and back
+
+    for (const faceZ of faces) {
+      // Diagonal going up-right (\)
+      const beamA = new THREE.Mesh(crossBeamGeom, timberMat);
+      beamA.position.set(0, sectionBaseY, faceZ);
+      beamA.rotation.z = diagonalAngle;
+      group.add(beamA);
+
+      // Diagonal going up-left (/)
+      const beamB = new THREE.Mesh(crossBeamGeom, timberMat);
+      beamB.position.set(0, sectionBaseY, faceZ);
+      beamB.rotation.z = -diagonalAngle;
+      group.add(beamB);
+    }
+  }
+
+  // --- Iron/dark trim elements at the top and bottom of walls ---
+  const ironTrimGeomKey = `germanIronTrim_${width.toFixed(0)}`;
+  const ironTrimGeom = getOrCreateGeometry(ironTrimGeomKey, () =>
+    new THREE.BoxGeometry(width * 0.92, 0.35, 0.35)
+  );
+  const ironMat = getDetailMaterial(0x2a2a2a); // dark iron
+
+  // Bottom iron trim (front and back)
+  const ironBF = new THREE.Mesh(ironTrimGeom, ironMat);
+  ironBF.position.set(0, 0.2, -depth * 0.46);
+  group.add(ironBF);
+  const ironBB = new THREE.Mesh(ironTrimGeom, ironMat);
+  ironBB.position.set(0, 0.2, depth * 0.46);
+  group.add(ironBB);
+
+  // Top iron trim (front and back)
+  const ironTF = new THREE.Mesh(ironTrimGeom, ironMat);
+  ironTF.position.set(0, height - 0.2, -depth * 0.46);
+  group.add(ironTF);
+  const ironTB = new THREE.Mesh(ironTrimGeom, ironMat);
+  ironTB.position.set(0, height - 0.2, depth * 0.46);
+  group.add(ironTB);
+
+  // Iron corner brackets (small dark cubes at the base of each corner)
+  const bracketGeom = getOrCreateGeometry('germanIronBracket', () =>
+    new THREE.BoxGeometry(0.8, 0.8, 0.8)
+  );
+  const bracketCorners = [
+    [-width * 0.45, -depth * 0.45],
+    [ width * 0.45, -depth * 0.45],
+    [-width * 0.45,  depth * 0.45],
+    [ width * 0.45,  depth * 0.45],
+  ];
+  for (const [bx, bz] of bracketCorners) {
+    const bracket = new THREE.Mesh(bracketGeom, ironMat);
+    bracket.position.set(bx, 0.4, bz);
+    group.add(bracket);
+  }
+
+  // --- Biergarten bench for barracks and palace ---
+  if (buildingType === BuildingType.BARRACKS || buildingType === BuildingType.PALACE) {
+    const benchGeomKey = 'germanBench';
+    const benchGeom = getOrCreateGeometry(benchGeomKey, () =>
+      new THREE.BoxGeometry(3.5, 0.8, 1.2)
+    );
+    const benchMat = getDetailMaterial(0x6a4a2a); // brown wood
+    const bench = new THREE.Mesh(benchGeom, benchMat);
+    bench.position.set(width * 0.5 + 2.0, 0.4, 0);
+    bench.receiveShadow = true;
+    group.add(bench);
+  }
+}
+
 function addFlag(group, width, depth, height, faction) {
   // Small flag on a pole at the top corner
   const poleHeight = 4;
@@ -437,7 +715,7 @@ function addFlag(group, width, depth, height, faction) {
 
 // --- Type-specific detail meshes ---
 
-function addTypeDetail(group, type, width, depth, height, fw) {
+function addTypeDetail(group, type, width, depth, height, fw, faction) {
   switch (type) {
     case BuildingType.POWER_PLANT:
       addPowerPlantDetail(group, height);
@@ -475,6 +753,9 @@ function addTypeDetail(group, type, width, depth, height, fw) {
     case BuildingType.HEAVY_FACTORY:
     case BuildingType.LIGHT_FACTORY:
       addFactoryDetail(group, width, depth, height);
+      break;
+    case BuildingType.LAB:
+      addLabDetail(group, width, depth, height, faction);
       break;
   }
 }
@@ -721,6 +1002,46 @@ function addFactoryDetail(group, width, depth, height) {
   stack2.position.set(-width * 0.15, height + 3, -depth * 0.15);
   stack2.castShadow = true;
   group.add(stack2);
+}
+
+function addLabDetail(group, width, depth, height, faction) {
+  const style = FACTION_STYLES[faction] || FACTION_STYLES.swiss;
+
+  // --- Dome / hemisphere on top of the building ---
+  const domeRadius = Math.min(width, depth) * 0.3;
+  const domeGeomKey = `labDome_${domeRadius.toFixed(1)}`;
+  const domeGeom = getOrCreateGeometry(domeGeomKey, () =>
+    new THREE.SphereGeometry(domeRadius, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2)
+  );
+  const domeMat = new THREE.MeshStandardMaterial({
+    color: style.windowColor,
+    roughness: 0.3,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.85,
+  });
+  const dome = new THREE.Mesh(domeGeom, domeMat);
+  dome.position.set(0, height, 0);
+  dome.castShadow = true;
+  dome.receiveShadow = true;
+  group.add(dome);
+
+  // --- Emissive research orb floating above the dome ---
+  const orbRadius = domeRadius * 0.3;
+  const orbGeomKey = `labOrb_${orbRadius.toFixed(1)}`;
+  const orbGeom = getOrCreateGeometry(orbGeomKey, () =>
+    new THREE.SphereGeometry(orbRadius, 12, 10)
+  );
+  const orbMat = new THREE.MeshStandardMaterial({
+    color: 0x66ffcc,
+    emissive: 0x66ffcc,
+    emissiveIntensity: 0.8,
+    roughness: 0.1,
+    metalness: 0.3,
+  });
+  const orb = new THREE.Mesh(orbGeom, orbMat);
+  orb.position.set(0, height + domeRadius + orbRadius * 2, 0);
+  group.add(orb);
 }
 
 // --- Fog visibility check ---

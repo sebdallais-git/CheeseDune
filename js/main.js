@@ -27,7 +27,8 @@ import {
   getSkirmishSettings,
   addGameTime, resetGameTime,
   registerOwnerFaction, clearOwnerFactions,
-  setOnStartGame, getCampaignMission, advanceCampaign
+  setOnStartGame, getCampaignMission, advanceCampaign,
+  setActiveDifficulty, setIsCampaignGame, getIsCampaignGame
 } from './game-states.js';
 
 // Sub-renderer stubs
@@ -39,7 +40,7 @@ import { init as initProjectiles3D, sync as syncProjectiles3D } from './three-pr
 import { init as initEnv3D, sync as syncEnv3D, buildEnvironment } from './three-environment.js';
 import { initUI, sync as syncUI, showMenu, hideGameUI, showGameUI, setUIStartCallback } from './three-ui.js';
 
-let isCampaignGame = false;
+// Campaign state is stored in game-states.js (getIsCampaignGame/setIsCampaignGame)
 
 function startGame(mode) {
   let settings;
@@ -52,11 +53,12 @@ function startGame(mode) {
       difficulty: mission.difficulty,
       seed: mission.seed,
     };
-    isCampaignGame = true;
+    setIsCampaignGame(true);
   } else {
     settings = getSkirmishSettings();
-    isCampaignGame = false;
+    setIsCampaignGame(false);
   }
+  setActiveDifficulty(settings.difficulty);
   const size = settings.mapSize;
   const numPlayers = 1 + settings.opponents;
 
@@ -93,7 +95,16 @@ function startGame(mode) {
   spawnUnit(UnitType.LIGHT_INFANTRY, playerFaction, playerStart.x + 1, playerStart.y - 1, 'player');
   spawnUnit(UnitType.LIGHT_INFANTRY, playerFaction, playerStart.x + 2, playerStart.y - 1, 'player');
   spawnUnit(UnitType.HARVESTER, playerFaction, playerStart.x + 4, playerStart.y + 1, 'player');
-  initEconomy(2000, 'player');
+  if (settings.difficulty === 'easy') {
+    // Extra starting units on easy
+    spawnUnit(UnitType.HEAVY_INFANTRY, playerFaction, playerStart.x + 1, playerStart.y - 2, 'player');
+    spawnUnit(UnitType.HEAVY_INFANTRY, playerFaction, playerStart.x + 2, playerStart.y - 2, 'player');
+    spawnUnit(UnitType.HEAVY_INFANTRY, playerFaction, playerStart.x + 3, playerStart.y - 2, 'player');
+    spawnUnit(UnitType.LIGHT_INFANTRY, playerFaction, playerStart.x, playerStart.y - 2, 'player');
+    initEconomy(4000, 'player');
+  } else {
+    initEconomy(2000, 'player');
+  }
 
   // AI setup
   const availableFactions = ['swiss', 'french', 'german'].filter(f => f !== playerFaction);
@@ -106,11 +117,16 @@ function startGame(mode) {
     placeBuilding(BuildingType.CONSTRUCTION_YARD, aiStart.x, aiStart.y, aiOwner);
     placeBuilding(BuildingType.POWER_PLANT, aiStart.x - 2, aiStart.y + 3, aiOwner);
     placeBuilding(BuildingType.REFINERY, aiStart.x + 3, aiStart.y, aiOwner);
-    spawnUnit(UnitType.LIGHT_INFANTRY, aiFaction, aiStart.x + 1, aiStart.y - 1, aiOwner);
-    spawnUnit(UnitType.LIGHT_INFANTRY, aiFaction, aiStart.x + 2, aiStart.y - 1, aiOwner);
+    if (settings.difficulty === 'easy') {
+      // Easy AI starts with fewer units
+      spawnUnit(UnitType.LIGHT_INFANTRY, aiFaction, aiStart.x + 1, aiStart.y - 1, aiOwner);
+    } else {
+      spawnUnit(UnitType.LIGHT_INFANTRY, aiFaction, aiStart.x + 1, aiStart.y - 1, aiOwner);
+      spawnUnit(UnitType.LIGHT_INFANTRY, aiFaction, aiStart.x + 2, aiStart.y - 1, aiOwner);
+    }
     spawnUnit(UnitType.HARVESTER, aiFaction, aiStart.x + 4, aiStart.y + 1, aiOwner);
 
-    const startCheese = settings.difficulty === 'easy' ? 2000 : settings.difficulty === 'hard' ? 3000 : 2500;
+    const startCheese = settings.difficulty === 'easy' ? 1000 : settings.difficulty === 'hard' ? 3000 : 2500;
     initEconomy(startCheese, aiOwner);
 
     createAI(aiOwner, aiFaction, settings.difficulty);
@@ -197,7 +213,7 @@ function checkVictoryDefeat() {
   const enemyMCV = allUnits.some(u => u.type === UnitType.MCV && u.owner !== 'player' && u.alive);
   if (!enemyCY && !enemyMCV) {
     setPlaying(false);
-    if (isCampaignGame) advanceCampaign();
+    if (getIsCampaignGame()) advanceCampaign();
     setGameState(GameStateId.VICTORY);
   }
 }

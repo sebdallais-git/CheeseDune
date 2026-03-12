@@ -129,9 +129,9 @@ export const AIDifficulty = {
 };
 
 export const AI_SETTINGS = {
-  easy:   { buildTimeMult: 1.5, armyThreshold: 8,  startingCheese: 2000, rebuildDelay: 5, maxUnitTier: 1 },
-  medium: { buildTimeMult: 1.0, armyThreshold: 12, startingCheese: 2500, rebuildDelay: 2, maxUnitTier: 2 },
-  hard:   { buildTimeMult: 0.75, armyThreshold: 16, startingCheese: 3000, rebuildDelay: 0, maxUnitTier: 3 },
+  easy:   { buildTimeMult: 4.0, armyThreshold: 8,  startingCheese: 800,  rebuildDelay: 25, maxUnitTier: 1, damageMult: 0.35, attackFraction: 0.6 },
+  medium: { buildTimeMult: 1.0, armyThreshold: 12, startingCheese: 2500, rebuildDelay: 2,  maxUnitTier: 2, damageMult: 1.0, attackFraction: 1.0 },
+  hard:   { buildTimeMult: 0.75, armyThreshold: 16, startingCheese: 3000, rebuildDelay: 0,  maxUnitTier: 3, damageMult: 1.0, attackFraction: 1.0 },
 };
 
 // Cheese zone constants (Käsekanone)
