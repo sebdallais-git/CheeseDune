@@ -74,6 +74,10 @@ export function drawParticles(ctx) {
   ctx.restore();
 }
 
+export function getParticles() {
+  return particles;
+}
+
 export function clearParticles() {
   particles = [];
 }

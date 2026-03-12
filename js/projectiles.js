@@ -78,6 +78,10 @@ export function drawProjectiles(ctx) {
   ctx.restore();
 }
 
+export function getProjectiles() {
+  return projectiles;
+}
+
 export function clearProjectiles() {
   projectiles = [];
 }
