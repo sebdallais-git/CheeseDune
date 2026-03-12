@@ -11,6 +11,7 @@ let camera = null;
 let raycaster = null;
 let groundPlane = null;
 let rendererDom = null;
+let resizeListenerAdded = false;
 
 // Camera state
 let frustumHalf = DEFAULT_FRUSTUM;
@@ -19,12 +20,19 @@ let camTargetX = 0;
 let camTargetZ = 0;
 
 export function initCamera(mapWidth, mapHeight) {
-  const aspect = window.innerWidth / window.innerHeight;
-  camera = new THREE.OrthographicCamera(
-    -frustumHalf * aspect, frustumHalf * aspect,
-    frustumHalf, -frustumHalf,
-    0.1, 500
-  );
+  // Reuse existing camera to preserve RenderPass reference
+  if (!camera) {
+    const aspect = window.innerWidth / window.innerHeight;
+    camera = new THREE.OrthographicCamera(
+      -frustumHalf * aspect, frustumHalf * aspect,
+      frustumHalf, -frustumHalf,
+      0.1, 500
+    );
+  }
+
+  // Reset zoom and position state
+  zoomLevel = 1.0;
+  frustumHalf = DEFAULT_FRUSTUM;
 
   // Classic isometric direction: (1, 1, 1) normalized
   const dir = new THREE.Vector3(1, 1, 1).normalize();
@@ -32,11 +40,25 @@ export function initCamera(mapWidth, mapHeight) {
   camera.position.set(dir.x * dist, dir.y * dist, dir.z * dist);
   camera.lookAt(0, 0, 0);
 
-  raycaster = new THREE.Raycaster();
-  groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // y = 0
+  // Center on map if dimensions provided
+  if (mapWidth > 0 && mapHeight > 0) {
+    camTargetX = (mapWidth * TILE_SIZE) / 2;
+    camTargetZ = (mapHeight * TILE_SIZE) / 2;
+    _applyPosition();
+  }
 
-  handleResize();
-  window.addEventListener('resize', handleResize);
+  if (!raycaster) {
+    raycaster = new THREE.Raycaster();
+    groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  }
+
+  _updateProjection();
+
+  // Only add resize listener once
+  if (!resizeListenerAdded) {
+    window.addEventListener('resize', handleResize);
+    resizeListenerAdded = true;
+  }
 
   return camera;
 }
@@ -197,7 +219,8 @@ export function updateCameraUniforms(sunLight) {
   shadowCam.near = 0.5;
   shadowCam.far = 300;
 
-  // Position shadow camera to follow the view center
+  // Move sun light and shadow camera to follow the view center
+  sunLight.position.set(camTargetX + 50, 80, camTargetZ + 50);
   const lightDir = sunLight.position.clone().normalize();
   shadowCam.position.copy(
     new THREE.Vector3(camTargetX, 0, camTargetZ).add(lightDir.multiplyScalar(100))

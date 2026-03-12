@@ -112,7 +112,6 @@ export function sync(dt) {
     // Color from particle
     mat.color.set(p.color);
     mat.opacity = lifeRatio;
-    mat.needsUpdate = true;
 
     // Tumble rotation for debris effect
     mesh.rotateOnAxis(entry.tumbleAxis, entry.tumbleSpeed * dt);
