@@ -9,7 +9,7 @@ import {
   getUnits, removeUnit, getEnemiesInRange, getNearestEnemy, moveUnitTo, stopUnit
 } from './units.js';
 import { getTile } from './map.js';
-import { getBuildings } from './buildings.js';
+import { getBuildings, removeBuilding } from './buildings.js';
 import { getPowerMultiplier } from './power.js';
 import { spawnProjectile } from './projectiles.js';
 import { spawnDeathEffect } from './particles.js';
@@ -330,26 +330,83 @@ export function updateCombat(dt) {
       }
     }
 
-    if (!unit.target) continue;
-
-    const rangePixels = unit.range * TILE_SIZE;
-    const dist = distBetween(unit, unit.target);
-
-    if (dist <= rangePixels) {
-      // In range — stop moving and attack
-      if (unit.moving && !unit.attackMoving) {
-        stopUnit(unit);
+    // If no unit target, try targeting enemy buildings
+    if (!unit.target && !unit.moving) {
+      const buildings = getBuildings();
+      const rangePixels = unit.range * TILE_SIZE;
+      let closestBuilding = null;
+      let closestBuildingDist = Infinity;
+      for (const b of buildings) {
+        if (!b.alive || b.owner === unit.owner) continue;
+        const bx = (b.tileX + b.footprint[0] / 2) * TILE_SIZE;
+        const by = (b.tileY + b.footprint[1] / 2) * TILE_SIZE;
+        const dx = bx - unit.x;
+        const dy = by - unit.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < closestBuildingDist) {
+          closestBuildingDist = dist;
+          closestBuilding = b;
+        }
       }
-
-      if (unit.attackCooldown <= 0) {
-        fireAttack(unit, unit.target);
-        unit.attackCooldown = 1 / unit.attackSpeed;
+      if (closestBuilding) {
+        unit.buildingTarget = closestBuilding;
       }
-    } else if (!unit.moving) {
-      // Out of range and not already moving — move toward target
-      const targetTileX = Math.floor(unit.target.x / TILE_SIZE);
-      const targetTileY = Math.floor(unit.target.y / TILE_SIZE);
-      moveUnitTo(unit, targetTileX, targetTileY);
+    }
+
+    // Attack unit target
+    if (unit.target) {
+      const rangePixels = unit.range * TILE_SIZE;
+      const dist = distBetween(unit, unit.target);
+
+      if (dist <= rangePixels) {
+        if (unit.moving && !unit.attackMoving) {
+          stopUnit(unit);
+        }
+        if (unit.attackCooldown <= 0) {
+          fireAttack(unit, unit.target);
+          unit.attackCooldown = 1 / unit.attackSpeed;
+        }
+      } else if (!unit.moving) {
+        const targetTileX = Math.floor(unit.target.x / TILE_SIZE);
+        const targetTileY = Math.floor(unit.target.y / TILE_SIZE);
+        moveUnitTo(unit, targetTileX, targetTileY);
+      }
+      continue;
+    }
+
+    // Attack building target
+    if (unit.buildingTarget) {
+      const b = unit.buildingTarget;
+      if (!b.alive) { unit.buildingTarget = null; continue; }
+      const bx = (b.tileX + b.footprint[0] / 2) * TILE_SIZE;
+      const by = (b.tileY + b.footprint[1] / 2) * TILE_SIZE;
+      const dx = bx - unit.x;
+      const dy = by - unit.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const rangePixels = unit.range * TILE_SIZE;
+
+      if (dist <= rangePixels) {
+        if (unit.moving) stopUnit(unit);
+        if (unit.attackCooldown <= 0) {
+          unit.facing = Math.atan2(dy, dx);
+          const faction = getFaction(unit.faction);
+          const color = faction ? faction.colors.accent : '#ffaa00';
+          spawnProjectile(unit.x, unit.y, bx, by, color, () => {
+            if (!b.alive) return;
+            b.hp -= unit.damage;
+            if (b.hp <= 0) {
+              b.hp = 0;
+              spawnDeathEffect(bx, by, '#ff6600', 20);
+              removeBuilding(b);
+            }
+          });
+          unit.attackCooldown = 1 / unit.attackSpeed;
+        }
+      } else if (!unit.moving) {
+        const tx = Math.floor(bx / TILE_SIZE);
+        const ty = Math.floor(by / TILE_SIZE);
+        moveUnitTo(unit, tx, ty);
+      }
     }
   }
 }

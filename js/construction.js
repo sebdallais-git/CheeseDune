@@ -8,6 +8,9 @@ import { getMapWidth, getMapHeight } from './map.js';
 
 // Build queue — one item at a time per owner
 let buildQueue = [];
+let onBuildComplete = null;
+
+export function setOnBuildComplete(fn) { onBuildComplete = fn; }
 
 /**
  * Check if tech tree prerequisites are met for a building type.
@@ -184,6 +187,7 @@ export function updateConstruction(dt, owner) {
     if (item.progress >= item.buildTime) {
       item.progress = item.buildTime;
       item.pendingPlacement = true;
+      if (onBuildComplete) onBuildComplete(item);
     }
   }
 

@@ -21,9 +21,9 @@ import { updateProjectiles, clearProjectiles } from './projectiles.js';
 import { updateParticles, clearParticles } from './particles.js';
 import { placeBuilding, updateBuildings, getBuildings, canPlaceBuilding, clearBuildings } from './buildings.js';
 import { initEconomy, resetEconomy } from './economy.js';
-import { updateConstruction, clearConstruction } from './construction.js';
+import { updateConstruction, clearConstruction, setOnBuildComplete } from './construction.js';
 import { updateHarvesters } from './harvester-ai.js';
-import { getPlacementMode, setPlayerFaction } from './sidebar.js';
+import { getPlacementMode, setPlacementMode, setPlayerFaction, updateSidebarCooldown, setOnSurrender } from './sidebar.js';
 import { generateMap } from './mapgen.js';
 import { createAI, updateAI, clearAI } from './ai.js';
 import { updateStarports } from './starport.js';
@@ -98,6 +98,19 @@ function startSkirmish() {
     createAI(aiOwner, aiFaction, settings.difficulty);
   }
 
+  // Surrender callback
+  setOnSurrender(() => {
+    setPlaying(false);
+    setGameState(GameStateId.DEFEAT);
+  });
+
+  // Auto-enter placement mode when player building completes
+  setOnBuildComplete((item) => {
+    if (item.owner === 'player') {
+      setPlacementMode(item.type);
+    }
+  });
+
   // Wire game ticks
   onTick('ai', (dt) => updateAI(dt));
   onTick('construction-player', (dt) => updateConstruction(dt, 'player'));
@@ -113,6 +126,7 @@ function startSkirmish() {
   onTick('particles', (dt) => updateParticles(dt));
   onTick('units', (dt) => updateUnits(dt));
   onTick('selection', () => cleanSelection());
+  onTick('sidebarCooldown', (dt) => updateSidebarCooldown(dt));
   onTick('gameTime', (dt) => addGameTime(dt));
   onTick('fog', () => {
     resetVisibility();
@@ -162,6 +176,14 @@ function startSkirmish() {
   onDraw('bottomBar', () => drawSelectionPanel(getSelectedUnits()));
   onDraw('sidebar', () => drawSidebar());
   onDraw('minimap', () => drawMinimap());
+  // Re-register menu overlay for victory/defeat screens
+  onDraw('menuOverlay', () => {
+    const state = getGameState();
+    const ctx = getCtx();
+    if (state === GameStateId.VICTORY || state === GameStateId.DEFEAT) {
+      drawResultOverlay(ctx);
+    }
+  });
 
   // Center camera on player start
   centerOnTile(playerStart.x + 2, playerStart.y + 2);

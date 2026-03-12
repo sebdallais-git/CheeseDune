@@ -52,6 +52,7 @@ export function spawnUnit(type, faction, tileX, tileY, owner) {
     superAbility: stats.superAbility || null,
     drunkTimer: 0,
     drunkAngle: 0,
+    buildingTarget: null,
     deploying: false,
     deployTimer: 0,
     deployTileX: 0,

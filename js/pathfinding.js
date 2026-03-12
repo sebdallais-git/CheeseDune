@@ -1,6 +1,7 @@
 // Game/public/dune/js/pathfinding.js
 import { Terrain, TERRAIN_PASSABLE, TERRAIN_SPEED } from './constants.js';
 import { getTile, getMapWidth, getMapHeight } from './map.js';
+import { getBuildingAtTile } from './buildings.js';
 
 /**
  * Find a path from (startX, startY) to (endX, endY) using A*.
@@ -23,8 +24,6 @@ export function findPath(startX, startY, endX, endY) {
 
   // Note: gScore serves as combined open+closed tracking. No separate closed set needed
   // because Manhattan heuristic on 4-directional grid is consistent (monotone).
-  // Note: Building occupancy is not checked here — will be added in Phase 4 via a
-  // callback or by marking building tiles as impassable in the map.
   const key = (x, y) => y * mapW + x;
   const startKey = key(startX, startY);
   const endKey = key(endX, endY);
@@ -80,6 +79,8 @@ export function findPath(startX, startY, endX, endY) {
       if (!TERRAIN_PASSABLE[tile]) continue;
 
       const nKey = key(nx, ny);
+      // Block building tiles (but allow the destination tile for attack-move)
+      if (nKey !== endKey && getBuildingAtTile(nx, ny)) continue;
       // Cost = 1/speed: forest (speed 0.5) → cost 2, snow (0.7) → cost ~1.4, meadow (1.0) → cost 1
       const moveCost = 1 / (TERRAIN_SPEED[tile] || 1);
       const tentativeG = current.g + moveCost;
