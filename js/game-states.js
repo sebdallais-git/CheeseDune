@@ -5,6 +5,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 export const GameStateId = {
   MAIN_MENU: 'MAIN_MENU',
   SKIRMISH_SETUP: 'SKIRMISH_SETUP',
+  CAMPAIGN_SETUP: 'CAMPAIGN_SETUP',
   PLAYING: 'PLAYING',
   VICTORY: 'VICTORY',
   DEFEAT: 'DEFEAT',
@@ -109,19 +110,20 @@ export function drawMainMenu(ctx) {
   ctx.fillText('SKIRMISH', CANVAS_WIDTH / 2, by + 38);
 
   const cy2 = by + bh + 20;
-  ctx.fillStyle = '#1a1a24';
+  ctx.fillStyle = '#2a2a3e';
   ctx.fillRect(bx, cy2, bw, bh);
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#4a4a8a';
+  ctx.lineWidth = 2;
   ctx.strokeRect(bx, cy2, bw, bh);
-  ctx.fillStyle = '#555';
-  ctx.font = '20px monospace';
-  ctx.fillText('CAMPAIGN (Phase 6)', CANVAS_WIDTH / 2, cy2 + 38);
+  ctx.fillStyle = '#ccccdd';
+  ctx.font = 'bold 20px monospace';
+  ctx.fillText('CAMPAIGN', CANVAS_WIDTH / 2, cy2 + 38);
 
   ctx.textAlign = 'left';
 
   menuButtons = [
     btn('skirmish', bx, by, bw, bh, () => setGameState(GameStateId.SKIRMISH_SETUP)),
+    btn('campaign', bx, cy2, bw, bh, () => setGameState(GameStateId.CAMPAIGN_SETUP)),
   ];
 }
 
@@ -256,6 +258,168 @@ export function drawSkirmishSetup(ctx) {
   ctx.textAlign = 'left';
 }
 
+// --- Campaign ---
+
+const CAMPAIGN_MISSIONS = [
+  { name: 'First Steps', desc: 'Establish your base and defeat a single opponent.', opponents: 1, difficulty: 'easy', mapSize: 32 },
+  { name: 'Border Skirmish', desc: 'Two enemies challenge your territory.', opponents: 2, difficulty: 'easy', mapSize: 40 },
+  { name: 'Alpine Assault', desc: 'Hold your ground against two aggressive foes.', opponents: 2, difficulty: 'medium', mapSize: 48 },
+  { name: 'Three-Front War', desc: 'Surrounded on all sides. Survive and conquer.', opponents: 3, difficulty: 'medium', mapSize: 56 },
+  { name: 'The Grand Melee', desc: 'A massive battle for alpine supremacy.', opponents: 3, difficulty: 'hard', mapSize: 64 },
+];
+
+let campaignProgress = 0;
+try {
+  campaignProgress = parseInt(localStorage.getItem('cheesedune_campaign') || '0', 10);
+} catch (e) { /* no localStorage */ }
+
+function saveCampaignProgress() {
+  try { localStorage.setItem('cheesedune_campaign', String(campaignProgress)); } catch (e) { /* noop */ }
+}
+
+let campaignFaction = 'swiss';
+let activeMission = 0;
+
+/**
+ * Draw campaign setup screen.
+ */
+export function drawCampaignSetup(ctx) {
+  ctx.fillStyle = '#0d0d1a';
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffcc00';
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText('CAMPAIGN', CANVAS_WIDTH / 2, 50);
+
+  menuButtons = [];
+  const cx = CANVAS_WIDTH / 2;
+
+  // Faction selector
+  const btnW = 100, btnH = 40, gap = 10;
+  let rowY = 80;
+  ctx.fillStyle = '#aaa';
+  ctx.font = '14px monospace';
+  ctx.fillText('Faction', cx, rowY);
+  rowY += 18;
+  const factionStartX = cx - ((FACTIONS.length * (btnW + gap) - gap) / 2);
+  for (let i = 0; i < FACTIONS.length; i++) {
+    const f = FACTIONS[i];
+    const bx = factionStartX + i * (btnW + gap);
+    const selected = campaignFaction === f.id;
+    ctx.fillStyle = selected ? f.color : '#1a1a24';
+    ctx.fillRect(bx, rowY, btnW, btnH);
+    ctx.strokeStyle = selected ? '#fff' : '#444';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(bx, rowY, btnW, btnH);
+    ctx.fillStyle = selected ? '#fff' : '#888';
+    ctx.font = '14px monospace';
+    ctx.fillText(f.label, bx + btnW / 2, rowY + 26);
+    menuButtons.push(btn(f.id, bx, rowY, btnW, btnH, () => {
+      campaignFaction = f.id;
+    }));
+  }
+
+  // Mission list
+  rowY += btnH + 24;
+  const mw = 440, mh = 56;
+  const mx = (CANVAS_WIDTH - mw) / 2;
+
+  for (let i = 0; i < CAMPAIGN_MISSIONS.length; i++) {
+    const m = CAMPAIGN_MISSIONS[i];
+    const my = rowY + i * (mh + 8);
+    const unlocked = i <= campaignProgress;
+    const isActive = activeMission === i;
+
+    ctx.fillStyle = isActive ? '#2a3a2a' : unlocked ? '#1a1a2e' : '#111118';
+    ctx.fillRect(mx, my, mw, mh);
+    ctx.strokeStyle = isActive ? '#4a8a4a' : unlocked ? '#444' : '#222';
+    ctx.lineWidth = isActive ? 2 : 1;
+    ctx.strokeRect(mx, my, mw, mh);
+
+    // Mission number
+    ctx.fillStyle = unlocked ? '#ffcc00' : '#333';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${i + 1}.`, mx + 10, my + 24);
+
+    // Mission name
+    ctx.fillStyle = unlocked ? '#ddd' : '#444';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText(m.name, mx + 40, my + 20);
+
+    // Description
+    ctx.fillStyle = unlocked ? '#888' : '#333';
+    ctx.font = '11px monospace';
+    ctx.fillText(unlocked ? m.desc : 'Locked', mx + 40, my + 40);
+
+    // Completed checkmark
+    if (i < campaignProgress) {
+      ctx.fillStyle = '#44cc44';
+      ctx.font = 'bold 18px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('\u2713', mx + mw - 10, my + 30);
+    }
+
+    ctx.textAlign = 'center';
+
+    if (unlocked) {
+      menuButtons.push(btn('mission' + i, mx, my, mw, mh, () => {
+        activeMission = i;
+      }));
+    }
+  }
+
+  // Start mission button
+  rowY += CAMPAIGN_MISSIONS.length * (mh + 8) + 10;
+  const startW = 260, startH = 50;
+  const startX = (CANVAS_WIDTH - startW) / 2;
+  ctx.fillStyle = '#2a4a2a';
+  ctx.fillRect(startX, rowY, startW, startH);
+  ctx.strokeStyle = '#4a8a4a';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(startX, rowY, startW, startH);
+  ctx.fillStyle = '#ccffcc';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('START MISSION', cx, rowY + 32);
+  menuButtons.push(btn('startMission', startX, rowY, startW, startH, 'START_CAMPAIGN_MISSION'));
+
+  // Back button
+  const backY = rowY + startH + 16;
+  const backW = 160, backH = 36;
+  const backX = (CANVAS_WIDTH - backW) / 2;
+  ctx.fillStyle = '#1a1a24';
+  ctx.fillRect(backX, backY, backW, backH);
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(backX, backY, backW, backH);
+  ctx.fillStyle = '#888';
+  ctx.font = '14px monospace';
+  ctx.fillText('BACK', cx, backY + 24);
+  menuButtons.push(btn('back', backX, backY, backW, backH, () => {
+    setGameState(GameStateId.MAIN_MENU);
+  }));
+
+  ctx.textAlign = 'left';
+}
+
+export function getCampaignMission() {
+  const m = CAMPAIGN_MISSIONS[activeMission];
+  return {
+    ...m,
+    faction: campaignFaction,
+    missionIndex: activeMission,
+    seed: 42000 + activeMission,
+  };
+}
+
+export function advanceCampaign() {
+  if (activeMission >= campaignProgress) {
+    campaignProgress = activeMission + 1;
+    saveCampaignProgress();
+  }
+}
+
 /**
  * Draw victory/defeat overlay.
  */
@@ -314,7 +478,11 @@ export function handleMenuInput(canvasX, canvasY) {
       }
       if (b.action === 'START_GAME' && onStartGame) {
         skirmishSettings.seed = Date.now();
-        onStartGame();
+        onStartGame('skirmish');
+        return 'handled';
+      }
+      if (b.action === 'START_CAMPAIGN_MISSION' && onStartGame) {
+        onStartGame('campaign');
         return 'handled';
       }
       return b.action;

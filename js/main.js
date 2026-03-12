@@ -30,14 +30,30 @@ import { updateStarports } from './starport.js';
 import {
   GameStateId, getGameState, setGameState,
   getSkirmishSettings, drawMainMenu, drawSkirmishSetup,
-  drawResultOverlay, handleMenuInput,
+  drawCampaignSetup, drawResultOverlay, handleMenuInput,
   addGameTime, resetGameTime,
   registerOwnerFaction, clearOwnerFactions,
-  setOnStartGame
+  setOnStartGame, getCampaignMission, advanceCampaign
 } from './game-states.js';
 
-function startSkirmish() {
-  const settings = getSkirmishSettings();
+let isCampaignGame = false;
+
+function startGame(mode) {
+  let settings;
+  if (mode === 'campaign') {
+    const mission = getCampaignMission();
+    settings = {
+      faction: mission.faction,
+      mapSize: mission.mapSize,
+      opponents: mission.opponents,
+      difficulty: mission.difficulty,
+      seed: mission.seed,
+    };
+    isCampaignGame = true;
+  } else {
+    settings = getSkirmishSettings();
+    isCampaignGame = false;
+  }
   const size = settings.mapSize;
   const numPlayers = 1 + settings.opponents;
 
@@ -210,6 +226,7 @@ function checkVictoryDefeat() {
   const enemyMCV = allUnits.some(u => u.type === UnitType.MCV && u.owner !== 'player' && u.alive);
   if (!enemyCY && !enemyMCV) {
     setPlaying(false);
+    if (isCampaignGame) advanceCampaign();
     setGameState(GameStateId.VICTORY);
   }
 }
@@ -218,7 +235,7 @@ function init() {
   initRenderer();
   initInput(getCanvas());
 
-  setOnStartGame(startSkirmish);
+  setOnStartGame(startGame);
 
   // Menu draw (always runs, state-aware)
   onDraw('menuOverlay', () => {
@@ -228,6 +245,8 @@ function init() {
       drawMainMenu(ctx);
     } else if (state === GameStateId.SKIRMISH_SETUP) {
       drawSkirmishSetup(ctx);
+    } else if (state === GameStateId.CAMPAIGN_SETUP) {
+      drawCampaignSetup(ctx);
     } else if (state === GameStateId.VICTORY || state === GameStateId.DEFEAT) {
       drawResultOverlay(ctx);
     }
