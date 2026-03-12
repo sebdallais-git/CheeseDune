@@ -49,6 +49,13 @@ export function spawnUnit(type, faction, tileX, tileY, owner) {
     attackSpeed: stats.attackSpeed || 0,
     shotsPerAttack: stats.shotsPerAttack || 1,
     splash: stats.splash || false,
+    superAbility: stats.superAbility || null,
+    drunkTimer: 0,
+    drunkAngle: 0,
+    deploying: false,
+    deployTimer: 0,
+    deployTileX: 0,
+    deployTileY: 0,
     alive: true,
     // Note: selection state is managed by selection.js, not stored on the unit
   };
@@ -62,6 +69,8 @@ export function spawnUnit(type, faction, tileX, tileY, owner) {
  * Calculates A* path and starts movement.
  */
 export function moveUnitTo(unit, destTileX, destTileY) {
+  if (unit.drunkTimer > 0) return false;
+  if (unit.deploying) return false;
   const currentTileX = Math.floor(unit.x / TILE_SIZE);
   const currentTileY = Math.floor(unit.y / TILE_SIZE);
 
@@ -89,6 +98,21 @@ export function stopUnit(unit) {
  */
 export function updateUnits(dt) {
   for (const unit of units) {
+    // Drunk wander — overrides normal movement
+    if (unit.drunkTimer > 0) {
+      unit.drunkTimer -= dt;
+      unit.drunkAngle += (Math.random() - 0.5) * 1.0;
+      const speed = unit.speed * TILE_SIZE * 0.5 * dt;
+      unit.x += Math.cos(unit.drunkAngle) * speed;
+      unit.y += Math.sin(unit.drunkAngle) * speed;
+      const mapW = getMapWidth() * TILE_SIZE;
+      const mapH = getMapHeight() * TILE_SIZE;
+      unit.x = Math.max(TILE_SIZE / 2, Math.min(mapW - TILE_SIZE / 2, unit.x));
+      unit.y = Math.max(TILE_SIZE / 2, Math.min(mapH - TILE_SIZE / 2, unit.y));
+      unit.facing = unit.drunkAngle;
+      continue;
+    }
+
     if (!unit.moving || unit.path.length === 0) continue;
 
     const target = unit.path[unit.pathIndex];

@@ -90,6 +90,13 @@ export const UnitType = {
   MCV: 'mcv',
 };
 
+// Super unit type IDs (one per faction, built at Palace)
+export const SuperUnitType = {
+  CHEESE_CANNON: 'cheeseCannon',
+  WINE_CATAPULT: 'wineCatapult',
+  BRATWURST_BLITZ: 'bratwurstBlitz',
+};
+
 // Unit stats by type
 export const UnitStats = {
   [UnitType.HARVESTER]:        { hp: 600, speed: 2, range: 0, damage: 0,  attackSpeed: 0,   cost: 300,  buildTime: 20, category: 'vehicle',  visionRadius: 5 },
@@ -102,15 +109,37 @@ export const UnitStats = {
   [UnitType.SIEGE_TANK]:       { hp: 500, speed: 3, range: 6, damage: 50, attackSpeed: 0.4, cost: 500,  buildTime: 25, category: 'vehicle',  visionRadius: 5, splash: true },
   [UnitType.ROCKET_LAUNCHER]:  { hp: 300, speed: 3, range: 7, damage: 40, attackSpeed: 0.5, cost: 600,  buildTime: 25, category: 'vehicle',  visionRadius: 5 },
   [UnitType.MCV]:              { hp: 800, speed: 2, range: 0, damage: 0,  attackSpeed: 0,   cost: 1000, buildTime: 30, category: 'vehicle',  visionRadius: 5 },
+  [SuperUnitType.CHEESE_CANNON]:   { hp: 350, speed: 4, range: 5, damage: 45, attackSpeed: 0.5, cost: 700, buildTime: 25, category: 'vehicle', visionRadius: 5, superAbility: 'cheeseZone' },
+  [SuperUnitType.WINE_CATAPULT]:   { hp: 300, speed: 4, range: 6, damage: 30, attackSpeed: 0.5, cost: 650, buildTime: 25, category: 'vehicle', visionRadius: 5, superAbility: 'drunk' },
+  [SuperUnitType.BRATWURST_BLITZ]: { hp: 500, speed: 6, range: 3, damage: 40, attackSpeed: 0.8, cost: 750, buildTime: 25, category: 'vehicle', visionRadius: 5 },
 };
 
-// Super unit stats — deferred to Phase 5 (Palace required). Defined here for completeness.
-// Special abilities are handled in combat.js (Phase 3/5).
-export const SuperUnitType = {
-  CHEESE_CANNON: 'superUnit',  // Swiss — AoE + lingering damage
-  WINE_CATAPULT: 'superUnit',  // French — drunk wander effect
-  BRATWURST_BLITZ: 'superUnit', // German — fast heavy
+// Faction → super unit mapping (keyed by FactionId string values)
+export const FACTION_SUPER_UNIT = {
+  swiss: SuperUnitType.CHEESE_CANNON,
+  french: SuperUnitType.WINE_CATAPULT,
+  german: SuperUnitType.BRATWURST_BLITZ,
 };
+
+// AI difficulty settings
+export const AIDifficulty = {
+  EASY: 'easy',
+  MEDIUM: 'medium',
+  HARD: 'hard',
+};
+
+export const AI_SETTINGS = {
+  easy:   { buildTimeMult: 1.5, armyThreshold: 8,  startingCheese: 2000, rebuildDelay: 5, maxUnitTier: 1 },
+  medium: { buildTimeMult: 1.0, armyThreshold: 12, startingCheese: 2500, rebuildDelay: 2, maxUnitTier: 2 },
+  hard:   { buildTimeMult: 0.75, armyThreshold: 16, startingCheese: 3000, rebuildDelay: 0, maxUnitTier: 3 },
+};
+
+// Cheese zone constants (Käsekanone)
+export const CHEESE_ZONE_DURATION = 2.0;
+export const CHEESE_ZONE_DPS = 10;
+
+// Drunk effect duration (Catapulte à Vin)
+export const DRUNK_DURATION = 5.0;
 
 // Unit rendering sizes (radius in pixels at 1x zoom)
 export const UnitSize = {

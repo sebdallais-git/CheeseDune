@@ -11,6 +11,10 @@ import { canBuildType, getCurrentBuild, startBuilding, cancelBuild } from './con
 let placementMode = null;
 let placementOwner = 'player';
 
+let playerFaction = 'swiss';
+
+export function setPlayerFaction(faction) { playerFaction = faction; }
+
 export function getPlacementMode() { return placementMode; }
 export function setPlacementMode(type) { placementMode = type; }
 export function clearPlacementMode() { placementMode = null; }
@@ -63,7 +67,7 @@ export function drawSidebar(ctx) {
   ctx.fillRect(SIDEBAR_X, 0, SIDEBAR_WIDTH, CANVAS_HEIGHT);
 
   // --- Resource display ---
-  const cheese = getCheese();
+  const cheese = getCheese('player');
   const storage = getStorageCapacity(owner);
   const power = getPowerStatus(owner);
 
@@ -166,7 +170,7 @@ export function handleSidebarTap(canvasX, canvasY) {
         // Start building if nothing in queue
         const current = getCurrentBuild(owner);
         if (!current) {
-          if (startBuilding(type, owner)) {
+          if (startBuilding(type, owner, playerFaction)) {
             // Building started
           }
         } else if (current.pendingPlacement) {

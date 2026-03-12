@@ -13,6 +13,7 @@ import { drawBuildings as drawBuildingsImpl, drawPlacementPreview as drawPlaceme
 import { drawSidebar as drawSidebarImpl } from './sidebar.js';
 import { drawProjectiles as drawProjectilesImpl } from './projectiles.js';
 import { drawParticles as drawParticlesImpl } from './particles.js';
+import { getCheeseZones } from './combat.js';
 
 let canvas, ctx, dpr;
 
@@ -302,6 +303,34 @@ export function drawBuildings() {
 
 export function drawPlacementPreview(type, tileX, tileY, valid) {
   drawPlacementPreviewImpl(ctx, type, tileX, tileY, valid);
+}
+
+export function drawCheeseZones() {
+  const zones = getCheeseZones();
+  if (zones.length === 0) return;
+
+  const z = getZoom();
+  const cx = getCamX();
+  const cy = getCamY();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  ctx.clip();
+
+  for (const zone of zones) {
+    const sx = (zone.x - cx) * z;
+    const sy = (zone.y - cy) * z + TOP_BAR_HEIGHT;
+    const r = zone.radius * z;
+    const alpha = Math.max(0, zone.timer / 2.0) * 0.4;
+
+    ctx.fillStyle = `rgba(255, 180, 0, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
 }
 
 export function drawHoverTile() {

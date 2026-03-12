@@ -76,6 +76,14 @@ export function drawUnits(ctx) {
       ctx.restore();
     }
 
+    // Drunk tint
+    if (unit.drunkTimer > 0) {
+      ctx.fillStyle = 'rgba(180, 80, 200, 0.4)';
+      ctx.beginPath();
+      ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // Health bar (only when damaged)
     if (unit.hp < unit.maxHp) {
       const barWidth = radius * 2.5;

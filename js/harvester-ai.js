@@ -4,7 +4,7 @@ import {
   HARVESTER_CAPACITY, HARVEST_RATE, UNLOAD_RATE
 } from './constants.js';
 import { getUnits, moveUnitTo } from './units.js';
-import { getTile, setTile, getMapWidth, getMapHeight } from './map.js';
+import { getTile, getMapWidth, getMapHeight } from './map.js';
 import { getNearestRefinery } from './buildings.js';
 import { addCheese } from './economy.js';
 
@@ -69,8 +69,6 @@ export function updateHarvesters(dt) {
 
   for (const unit of units) {
     if (unit.type !== UnitType.HARVESTER || !unit.alive) continue;
-    if (unit.owner !== 'player') continue; // Only player harvesters auto-harvest
-
     initHarvesterState(unit);
 
     switch (unit.harvesterState) {

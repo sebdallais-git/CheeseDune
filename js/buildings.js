@@ -1,6 +1,8 @@
 // Game/public/dune/js/buildings.js
 import { BuildingStats, BuildingType, Terrain, TILE_SIZE } from './constants.js';
 import { getTile, setTile, getMapWidth, getMapHeight } from './map.js';
+import { getUnits } from './units.js';
+import { spendCheese } from './economy.js';
 
 let buildings = [];
 let nextBuildingId = 1;
@@ -24,7 +26,9 @@ export function placeBuilding(type, tileX, tileY, owner) {
     hp: stats.hp,
     maxHp: stats.hp,
     footprint: stats.footprint,
+    faction: null,
     alive: true,
+    attackCooldown: 0,
   };
 
   buildings.push(building);
@@ -182,6 +186,31 @@ export function removeBuilding(building) {
  * Update buildings each tick (decay for buildings not on concrete).
  */
 export function updateBuildings(dt) {
+  // Repair pad healing
+  for (const b of buildings) {
+    if (!b.alive || b.type !== BuildingType.REPAIR_PAD) continue;
+    const stats = BuildingStats[b.type];
+
+    const padLeft = b.tileX * TILE_SIZE;
+    const padRight = (b.tileX + b.footprint[0]) * TILE_SIZE;
+    const padTop = b.tileY * TILE_SIZE;
+    const padBottom = (b.tileY + b.footprint[1]) * TILE_SIZE;
+
+    const allUnits = getUnits();
+    for (const u of allUnits) {
+      if (!u.alive || u.owner !== b.owner || u.category !== 'vehicle') continue;
+      if (u.hp >= u.maxHp) continue;
+
+      if (u.x >= padLeft && u.x <= padRight && u.y >= padTop && u.y <= padBottom) {
+        const healCost = stats.healCost * dt;
+        if (spendCheese(healCost, b.owner)) {
+          u.hp = Math.min(u.hp + stats.healRate * dt, u.maxHp);
+        }
+      }
+    }
+  }
+
+  // Decay for buildings not on concrete
   for (const b of buildings) {
     if (!b.alive) continue;
     if (!hasFullConcrete(b.type, b.tileX, b.tileY)) {
