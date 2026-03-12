@@ -1,6 +1,6 @@
 // Game/public/dune/js/input.js
 import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TOP_BAR_HEIGHT, CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE } from './constants.js';
-import { moveCamera, getZoom, setZoom, screenToTile, getCamX, getCamY } from './camera.js';
+import { moveCamera, getZoom, setZoom, screenToTile, screenToWorldPos } from './camera.js';
 import { handleMinimapClick } from './minimap.js';
 import { selectAtPosition, deselectAll, hasSelection, getSelectedUnits, selectInRect, selectAllOfType } from './selection.js';
 import { moveUnitTo, getUnitAtPosition } from './units.js';
@@ -107,12 +107,11 @@ function onPointerDown(e) {
         if (state === GestureState.PENDING) {
           state = GestureState.BOX_SELECTING;
           isBoxSelecting = true;
-          const vx = startPos.x;
-          const vy = startPos.y - TOP_BAR_HEIGHT;
-          boxStartWorldX = getCamX() + vx / getZoom();
-          boxStartWorldY = getCamY() + vy / getZoom();
-          boxEndWorldX = boxStartWorldX;
-          boxEndWorldY = boxStartWorldY;
+          const w = screenToWorldPos(startPos.x, startPos.y);
+          boxStartWorldX = w.x;
+          boxStartWorldY = w.y;
+          boxEndWorldX = w.x;
+          boxEndWorldY = w.y;
         }
       }, LONG_PRESS_MS);
     }
@@ -177,10 +176,9 @@ function onPointerMove(e) {
   }
 
   if (state === GestureState.BOX_SELECTING && pointers.size === 1) {
-    const vx = pos.x;
-    const vy = pos.y - TOP_BAR_HEIGHT;
-    boxEndWorldX = getCamX() + vx / getZoom();
-    boxEndWorldY = getCamY() + vy / getZoom();
+    const w = screenToWorldPos(pos.x, pos.y);
+    boxEndWorldX = w.x;
+    boxEndWorldY = w.y;
   }
 }
 
@@ -213,12 +211,11 @@ function onPointerUp(e) {
           const placed = placePendingBuilding('player', tile.tileX, tile.tileY);
           if (placed) clearPlacementMode();
         } else if (!handleMinimapClick(ptr.startX, ptr.startY)) {
-          // Convert screen tap to exact world coordinates (not snapped to tile center)
+          // Convert screen tap to exact world coordinates (isometric)
           if (tile) {
-            const vx = ptr.startX;
-            const vy = ptr.startY - TOP_BAR_HEIGHT;
-            const worldX = getCamX() + vx / getZoom();
-            const worldY = getCamY() + vy / getZoom();
+            const tapWorld = screenToWorldPos(ptr.startX, ptr.startY);
+            const worldX = tapWorld.x;
+            const worldY = tapWorld.y;
 
             const now = performance.now();
             const timeSinceLastTap = now - lastTapTime;

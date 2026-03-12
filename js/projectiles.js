@@ -1,6 +1,6 @@
 // Game/public/dune/js/projectiles.js
 import { TILE_SIZE, TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, PROJECTILE_SPEED } from './constants.js';
-import { getCamX, getCamY, getZoom } from './camera.js';
+import { worldToScreen, getZoom } from './camera.js';
 
 let projectiles = [];
 
@@ -60,8 +60,6 @@ export function updateProjectiles(dt) {
  */
 export function drawProjectiles(ctx) {
   const z = getZoom();
-  const cx = getCamX();
-  const cy = getCamY();
 
   ctx.save();
   ctx.beginPath();
@@ -69,14 +67,11 @@ export function drawProjectiles(ctx) {
   ctx.clip();
 
   for (const p of projectiles) {
-    const sx = (p.x - cx) * z;
-    const sy = (p.y - cy) * z + TOP_BAR_HEIGHT;
-
-    // Draw as small filled circle with trail
+    const s = worldToScreen(p.x, p.y);
     const size = 2.5 * z;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(sx, sy, size, 0, Math.PI * 2);
+    ctx.arc(s.x, s.y, size, 0, Math.PI * 2);
     ctx.fill();
   }
 

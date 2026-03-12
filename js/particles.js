@@ -1,6 +1,6 @@
 // Game/public/dune/js/particles.js
 import { TOP_BAR_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT } from './constants.js';
-import { getCamX, getCamY, getZoom } from './camera.js';
+import { worldToScreen, getZoom } from './camera.js';
 
 let particles = [];
 
@@ -52,8 +52,6 @@ export function updateParticles(dt) {
  */
 export function drawParticles(ctx) {
   const z = getZoom();
-  const cx = getCamX();
-  const cy = getCamY();
 
   ctx.save();
   ctx.beginPath();
@@ -61,8 +59,9 @@ export function drawParticles(ctx) {
   ctx.clip();
 
   for (const p of particles) {
-    const sx = (p.x - cx) * z;
-    const sy = (p.y - cy) * z + TOP_BAR_HEIGHT;
+    const s = worldToScreen(p.x, p.y);
+    const sx = s.x;
+    const sy = s.y;
     const alpha = Math.max(0, p.life / p.maxLife);
     const size = p.size * z * alpha;
 

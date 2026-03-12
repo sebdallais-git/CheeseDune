@@ -4,7 +4,7 @@ import {
   TILE_SIZE, TERRAIN_COLORS, TOP_BAR_HEIGHT, FogState
 } from './constants.js';
 import { getMapWidth, getMapHeight, getTile } from './map.js';
-import { getCamX, getCamY, getZoom, centerOnTile } from './camera.js';
+import { getZoom, centerOnTile, screenToWorldPos } from './camera.js';
 import { getFogState } from './fog.js';
 import { getUnits } from './units.js';
 
@@ -71,23 +71,26 @@ export function drawMinimap(ctx) {
     }
   }
 
-  // Draw viewport rectangle
-  const z = getZoom();
-  const viewWorldW = VIEWPORT_WIDTH / z;
-  const viewWorldH = VIEWPORT_HEIGHT / z;
-  const camTileX = getCamX() / TILE_SIZE;
-  const camTileY = getCamY() / TILE_SIZE;
-  const viewTileW = viewWorldW / TILE_SIZE;
-  const viewTileH = viewWorldH / TILE_SIZE;
-
+  // Draw viewport indicator — iso viewport maps to a rotated diamond in tile space
+  const corners = [
+    screenToWorldPos(0, TOP_BAR_HEIGHT),
+    screenToWorldPos(VIEWPORT_WIDTH, TOP_BAR_HEIGHT),
+    screenToWorldPos(VIEWPORT_WIDTH, TOP_BAR_HEIGHT + VIEWPORT_HEIGHT),
+    screenToWorldPos(0, TOP_BAR_HEIGHT + VIEWPORT_HEIGHT),
+  ];
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = 1;
-  ctx.strokeRect(
-    minimapX + camTileX * tileScale,
-    minimapY + camTileY * tileScale,
-    viewTileW * tileScale,
-    viewTileH * tileScale
-  );
+  ctx.beginPath();
+  for (let i = 0; i < corners.length; i++) {
+    const tx = corners[i].x / TILE_SIZE;
+    const ty = corners[i].y / TILE_SIZE;
+    const mx = minimapX + tx * tileScale;
+    const my = minimapY + ty * tileScale;
+    if (i === 0) ctx.moveTo(mx, my);
+    else ctx.lineTo(mx, my);
+  }
+  ctx.closePath();
+  ctx.stroke();
 
   // Draw unit dots
   const allUnits = getUnits();
